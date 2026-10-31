@@ -29,21 +29,29 @@ import {
   INITIAL_USER_EVENT_VENDORS,
 } from '../services/mockData';
 import { calculateCompletion } from '../utils/formatters';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { apiClient, setApiAccessToken } from '../services/apiClient';
 
 interface UserProfile {
   name: string;
   email: string;
   avatar?: string;
   role: string;
+  phoneNumber?: string;
 }
 
 interface AppStoreState {
   // Auth Slice
   user: UserProfile;
   isAuthenticated: boolean;
+  authLoading: boolean;
+  authError: string | null;
+  initAuth: () => Promise<void>;
   login: (email: string, name?: string) => void;
-  logout: () => void;
-  updateUserProfile: (profile: Partial<UserProfile>) => void;
+  loginWithSupabase: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signupWithSupabase: (email: string, password: string, fullName: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
 
   // Settings Slice
   theme: 'light' | 'dark';
@@ -56,8 +64,12 @@ interface AppStoreState {
   // Events Slice
   events: EventModel[];
   currentEventId: string;
+  eventsLoading: boolean;
+  eventsError: string | null;
+  fetchUserEvents: (params?: { page?: number; limit?: number; eventType?: string; status?: string; sortBy?: string }) => Promise<void>;
   selectEvent: (id: string) => void;
   createEvent: (event: Omit<EventModel, 'id' | 'createdAt' | 'updatedAt' | 'completionPercentage'>) => string;
+  createEventAsync: (event: Omit<EventModel, 'id' | 'createdAt' | 'updatedAt' | 'completionPercentage'>) => Promise<string>;
   updateEvent: (id: string, updates: Partial<EventModel>) => void;
   deleteEvent: (id: string) => void;
   duplicateEvent: (id: string) => string;
@@ -187,8 +199,42 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       email: 'aditi.planner@eventpilot.example.com',
       avatar: '',
       role: 'Lead Celebration Architect',
+      phoneNumber: '',
     },
     isAuthenticated: persisted?.isAuthenticated ?? true, // Default to demo auth logged in
+    authLoading: false,
+    authError: null,
+
+    initAuth: async () => {
+      try {
+        set({ authLoading: true, authError: null });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setApiAccessToken(session.access_token);
+          try {
+            const profile = await apiClient.getProfile();
+            set({
+              isAuthenticated: true,
+              user: {
+                name: profile.fullName || (profile.email.split('@')[0] || 'Celebration Host'),
+                email: profile.email,
+                avatar: profile.avatarUrl || '',
+                phoneNumber: profile.phoneNumber || '',
+                role: 'Event Organizer',
+              },
+            });
+            await get().fetchUserEvents();
+          } catch (e) {
+            console.warn('Backend profile sync failed on init:', e);
+          }
+        }
+      } catch (err: any) {
+        console.warn('Supabase auth init check:', err);
+      } finally {
+        set({ authLoading: false });
+      }
+    },
+
     login: (email: string, name?: string) => {
       set({
         isAuthenticated: true,
@@ -201,13 +247,136 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       });
       persistState();
     },
-    logout: () => {
+
+    loginWithSupabase: async (email: string, password: string) => {
+      set({ authLoading: true, authError: null });
+      try {
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            set({ authLoading: false, authError: error.message });
+            return { success: false, error: error.message };
+          }
+          if (data.session) {
+            setApiAccessToken(data.session.access_token);
+            try {
+              const profile = await apiClient.getProfile();
+              set({
+                isAuthenticated: true,
+                user: {
+                  name: profile.fullName || data.user?.user_metadata?.full_name || email.split('@')[0],
+                  email: profile.email || email,
+                  avatar: profile.avatarUrl || '',
+                  phoneNumber: profile.phoneNumber || '',
+                  role: 'Event Organizer',
+                },
+              });
+              await get().fetchUserEvents();
+            } catch (err) {
+              console.warn('Profile sync after login:', err);
+              set({
+                isAuthenticated: true,
+                user: {
+                  name: data.user?.user_metadata?.full_name || email.split('@')[0],
+                  email,
+                  avatar: '',
+                  role: 'Event Organizer',
+                },
+              });
+            }
+          }
+        } else {
+          // Demo authentication pre-filled fallback
+          get().login(email, email.split('@')[0]);
+        }
+        set({ authLoading: false });
+        persistState();
+        return { success: true };
+      } catch (err: any) {
+        const msg = err.message || 'Login failed';
+        set({ authLoading: false, authError: msg });
+        return { success: false, error: msg };
+      }
+    },
+
+    signupWithSupabase: async (email: string, password: string, fullName: string) => {
+      set({ authLoading: true, authError: null });
+      try {
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: { full_name: fullName },
+            },
+          });
+          if (error) {
+            set({ authLoading: false, authError: error.message });
+            return { success: false, error: error.message };
+          }
+          if (data.session) {
+            setApiAccessToken(data.session.access_token);
+            try {
+              const profile = await apiClient.getProfile();
+              set({
+                isAuthenticated: true,
+                user: {
+                  name: profile.fullName || fullName,
+                  email: profile.email || email,
+                  avatar: '',
+                  role: 'Event Organizer',
+                },
+              });
+            } catch {
+              set({
+                isAuthenticated: true,
+                user: { name: fullName, email, avatar: '', role: 'Event Organizer' },
+              });
+            }
+          } else {
+            set({
+              isAuthenticated: true,
+              user: { name: fullName, email, avatar: '', role: 'Event Organizer' },
+            });
+          }
+        } else {
+          get().login(email, fullName);
+        }
+        set({ authLoading: false });
+        persistState();
+        return { success: true };
+      } catch (err: any) {
+        const msg = err.message || 'Signup failed';
+        set({ authLoading: false, authError: msg });
+        return { success: false, error: msg };
+      }
+    },
+
+    logout: async () => {
+      try {
+        if (isSupabaseConfigured) {
+          await supabase.auth.signOut();
+        }
+      } catch (e) {
+        console.warn('Supabase signOut error:', e);
+      }
+      setApiAccessToken(null);
       set({ isAuthenticated: false });
       persistState();
     },
-    updateUserProfile: (profile) => {
-      set((s) => ({ user: { ...s.user, ...profile } }));
+
+    updateUserProfile: async (profileUpdates) => {
+      set((s) => ({ user: { ...s.user, ...profileUpdates } }));
       persistState();
+      try {
+        await apiClient.updateProfile({
+          fullName: profileUpdates.name,
+          avatarUrl: profileUpdates.avatar,
+          phoneNumber: profileUpdates.phoneNumber,
+        });
+      } catch (e) {
+        console.warn('Backend updateProfile failed:', e);
+      }
     },
 
     // Settings Slice
@@ -237,6 +406,28 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     // Events Slice
     events: persisted?.events || [INITIAL_WEDDING_EVENT],
     currentEventId: persisted?.currentEventId || 'evt-wedding-01',
+    eventsLoading: false,
+    eventsError: null,
+
+    fetchUserEvents: async (params) => {
+      set({ eventsLoading: true, eventsError: null });
+      try {
+        const data = await apiClient.getEvents(params);
+        if (data && Array.isArray(data.events)) {
+          set((s) => ({
+            events: data.events,
+            currentEventId: data.events[0]?.id || s.currentEventId,
+          }));
+          persistState();
+        }
+      } catch (err: any) {
+        console.warn('fetchUserEvents API call:', err);
+        set({ eventsError: err.message });
+      } finally {
+        set({ eventsLoading: false });
+      }
+    },
+
     selectEvent: (id: string) => {
       set({ currentEventId: id });
       persistState();
@@ -387,8 +578,48 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       }));
 
       persistState();
+
+      // Asynchronously persist to Supabase PostgreSQL via Express backend API
+      apiClient
+        .createEvent(eventData)
+        .then((created) => {
+          if (created && created.id) {
+            set((s) => ({
+              events: s.events.map((e) => (e.id === newId ? { ...e, ...created } : e)),
+              currentEventId: s.currentEventId === newId ? created.id : s.currentEventId,
+              budgets: { ...s.budgets, [created.id]: s.budgets[newId] || [] },
+              tasks: { ...s.tasks, [created.id]: s.tasks[newId] || [] },
+            }));
+            persistState();
+          }
+        })
+        .catch((err) => {
+          console.warn('Backend createEvent sync:', err);
+        });
+
       return newId;
     },
+
+    createEventAsync: async (eventData) => {
+      const localId = get().createEvent(eventData);
+      try {
+        const created = await apiClient.createEvent(eventData);
+        if (created && created.id) {
+          set((s) => ({
+            events: s.events.map((e) => (e.id === localId ? { ...e, ...created } : e)),
+            currentEventId: s.currentEventId === localId ? created.id : s.currentEventId,
+            budgets: { ...s.budgets, [created.id]: s.budgets[localId] || [] },
+            tasks: { ...s.tasks, [created.id]: s.tasks[localId] || [] },
+          }));
+          persistState();
+          return created.id;
+        }
+      } catch (err) {
+        console.warn('createEventAsync backend sync:', err);
+      }
+      return localId;
+    },
+
     updateEvent: (id, updates) => {
       set((s) => {
         const events = s.events.map((e) =>
@@ -397,7 +628,11 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         return { events };
       });
       persistState();
+      apiClient.updateEvent(id, updates).catch((err) => {
+        console.warn('apiClient.updateEvent backend sync:', err);
+      });
     },
+
     deleteEvent: (id) => {
       set((s) => {
         const remainingEvents = s.events.filter((e) => e.id !== id);
@@ -433,6 +668,9 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         };
       });
       persistState();
+      apiClient.deleteEvent(id).catch((err) => {
+        console.warn('apiClient.deleteEvent backend sync:', err);
+      });
     },
     duplicateEvent: (id) => {
       const s = get();

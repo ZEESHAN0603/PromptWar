@@ -5,15 +5,16 @@ import { useAppStore } from '../store/useAppStore';
 
 export const SignupPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAppStore();
+  const { signupWithSupabase } = useAppStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('Please enter your full name.');
@@ -28,8 +29,17 @@ export const SignupPage: React.FC = () => {
       return;
     }
 
-    login(email, name);
-    navigate('/app/events/new');
+    setError(null);
+    setIsLoading(true);
+
+    const result = await signupWithSupabase(email, password, name);
+    setIsLoading(false);
+
+    if (result.success) {
+      navigate('/app/events/new');
+    } else {
+      setError(result.error || 'Failed to create account. Please try again.');
+    }
   };
 
   return (

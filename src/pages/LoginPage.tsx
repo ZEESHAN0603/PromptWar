@@ -5,7 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, currentEventId } = useAppStore();
+  const { loginWithSupabase } = useAppStore();
 
   const [email, setEmail] = useState('aditi.planner@eventpilot.example.com');
   const [password, setPassword] = useState('celebration2026');
@@ -13,7 +13,7 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please provide a valid email address.');
@@ -27,11 +27,14 @@ export const LoginPage: React.FC = () => {
     setError(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      login(email, 'Aditi Deshmukh');
-      setIsLoading(false);
+    const result = await loginWithSupabase(email, password);
+    setIsLoading(false);
+
+    if (result.success) {
       navigate('/app/dashboard');
-    }, 450);
+    } else {
+      setError(result.error || 'Authentication failed. Please verify credentials.');
+    }
   };
 
   return (

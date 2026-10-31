@@ -8,7 +8,7 @@ This document outlines the multi-phase implementation roadmap for the EventPilot
 
 ```mermaid
 flowchart LR
-    P1["Phase 1\nBackend Foundation\n✅ COMPLETED"] --> P2["Phase 2\nAuth & Events\n⏳ PLANNED"]
+    P1["Phase 1\nBackend Foundation\n✅ COMPLETED"] --> P2["Phase 2\nAuth & Events\n✅ COMPLETED"]
     P2 --> P3["Phase 3\nBudget & Guests\n⏳ PLANNED"]
     P3 --> P4["Phase 4\nVendor Network\n⏳ PLANNED"]
     P4 --> P5["Phase 5\nPersonalized Ideas\n⏳ PLANNED"]
@@ -35,13 +35,17 @@ flowchart LR
 
 ---
 
-### ⏳ Phase 2: Authentication & Event Management
-**Status**: **PLANNED (Next Phase)**
-- [ ] Supabase Auth JWT verification middleware on Express routes (`auth.middleware.ts`).
-- [ ] User profile synchronization hook (`profiles`).
-- [ ] Event CRUD APIs (`POST /api/events`, `GET /api/events`, `GET /api/events/:id`, `PATCH /api/events/:id`, `DELETE /api/events/:id`).
-- [ ] Event ownership authorization policies and Supabase Row Level Security (RLS).
-- [ ] Event duplication and archival workflows.
+### ✅ Phase 2: Authentication, User Profiles & Event Management
+**Status**: **COMPLETED**
+- [x] Supabase Auth client & server-side JWT verification middleware (`auth.middleware.ts`).
+- [x] Reusable authentication middleware rejecting missing, invalid, or expired tokens (401).
+- [x] Automatic, idempotent user profile provisioning & updates (`/api/users/me`).
+- [x] Complete Event CRUD endpoints (`POST`, `GET`, `GET :id`, `PATCH :id`, `DELETE :id`).
+- [x] Strict user ownership and tenant data isolation (cross-user access returns 404).
+- [x] Comprehensive query filtering (type, status), sorting (date, created, budget), and pagination.
+- [x] Frontend React integration with Supabase Auth, protected routes, Bearer token API client.
+- [x] Automated Vitest & Supertest unit/integration test suites with 100% pass rate.
+- [x] Complete Phase 2 architecture, database, API, authentication, testing, and completion documentation.
 
 ---
 

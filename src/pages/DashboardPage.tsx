@@ -50,6 +50,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
   const {
     user,
     events,
+    eventsLoading,
+    fetchUserEvents,
     selectEvent,
     updateEvent,
     deleteEvent,
@@ -58,6 +60,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
     tasks,
     currency,
   } = useAppStore();
+
+  // Load events from backend on mount
+  React.useEffect(() => {
+    fetchUserEvents();
+  }, [fetchUserEvents]);
 
   // Search, Filter & Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -313,7 +320,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
       </div>
 
       {/* 4. EVENT CARDS GRID */}
-      {filteredEvents.length === 0 ? (
+      {eventsLoading ? (
+        <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="inline-block animate-spin w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full" />
+          <p className="text-xs text-slate-500">Loading your celebrations from Supabase...</p>
+        </div>
+      ) : filteredEvents.length === 0 ? (
         <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
           <div className="w-12 h-12 mx-auto rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
             <Calendar className="w-6 h-6" />

@@ -37,8 +37,13 @@ function ProtectedRoute({ children }: { children: React.ReactElement }) {
 }
 
 export default function App() {
-  const { theme } = useAppStore();
+  const { theme, initAuth } = useAppStore();
   const [isAdaptiveModalOpen, setIsAdaptiveModalOpen] = useState(false);
+
+  // Initialize Supabase Auth session on app startup
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   // Sync theme to root html element
   useEffect(() => {

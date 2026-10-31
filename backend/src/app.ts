@@ -6,6 +6,8 @@ import { requestLogger } from './middleware/request-logger.middleware.js';
 import { notFoundHandler } from './middleware/not-found.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { healthRouter } from './routes/health.routes.js';
+import { userRouter } from './routes/user.routes.js';
+import { eventRouter } from './routes/event.routes.js';
 
 export function createApp(): Application {
   const app: Application = express();
@@ -50,6 +52,8 @@ export function createApp(): Application {
 
   // API Routes
   app.use('/api/health', healthRouter);
+  app.use('/api/users', userRouter);
+  app.use('/api/events', eventRouter);
 
   // Root welcome / metadata route
   app.get('/', (_req, res) => {

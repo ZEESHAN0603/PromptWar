@@ -30,13 +30,14 @@ export const SettingsPage: React.FC = () => {
 
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
+  const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
   const [role, setRole] = useState(user.role);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateUserProfile({ name, email, role });
+    updateUserProfile({ name, email, role, phoneNumber });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
@@ -99,6 +100,19 @@ export const SettingsPage: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              placeholder="+91 98765 43210"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
             />
           </div>

@@ -17,17 +17,18 @@ erDiagram
     PROFILE ||--o{ EVENT : "owns / organizes"
 
     PROFILE {
-        string id PK "Supabase auth.users UUID"
+        uuid id PK "Supabase auth.users UUID (FK to auth.users.id)"
         string email UK "Unique email address"
         string fullName "User full name"
         string avatarUrl "Profile image URL"
+        string phoneNumber "Optional contact phone"
         datetime createdAt "Creation timestamp"
         datetime updatedAt "Update timestamp"
     }
 
     EVENT {
-        string id PK "UUID"
-        string userId FK "References profiles(id)"
+        uuid id PK "UUID (gen_random_uuid())"
+        uuid userId FK "References profiles(id)"
         string name "Event title"
         string type "Wedding, Birthday, Anniversary, etc."
         datetime date "Event date & time"
@@ -36,6 +37,7 @@ erDiagram
         decimal budget "Total target budget"
         int guestCount "Expected attendees"
         string theme "Theme or vibe"
+        string currency "Budget currency (default INR)"
         string status "planning, confirmed, in_progress, completed, archived"
         datetime createdAt "Creation timestamp"
         datetime updatedAt "Update timestamp"
@@ -51,10 +53,11 @@ Stores extended user profile information for authenticated accounts.
 
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `id` | `VARCHAR(36)` | `PRIMARY KEY` | Matches Supabase Auth `auth.users.id` UUID. |
+| `id` | `UUID` | `PRIMARY KEY, REFERENCES auth.users(id) ON DELETE CASCADE` | Matches Supabase Auth `auth.users.id` UUID. |
 | `email` | `VARCHAR(255)` | `UNIQUE, NOT NULL` | Synchronized user email. |
 | `fullName` | `VARCHAR(255)` | `NULLABLE` | Full name of the user. |
 | `avatarUrl` | `TEXT` | `NULLABLE` | Avatar image URL. |
+| `phoneNumber` | `VARCHAR(30)` | `NULLABLE` | Optional contact phone number. |
 | `createdAt` | `TIMESTAMPTZ` | `NOT NULL, DEFAULT now()` | Timestamp of profile creation. |
 | `updatedAt` | `TIMESTAMPTZ` | `NOT NULL` | Timestamp of last profile update. |
 
@@ -63,8 +66,8 @@ Stores events and celebrations created by users.
 
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `id` | `VARCHAR(36)` | `PRIMARY KEY, DEFAULT uuid()` | Unique event identifier. |
-| `userId` | `VARCHAR(36)` | `FOREIGN KEY (profiles.id) ON DELETE CASCADE` | Creator/owner identifier. |
+| `id` | `UUID` | `PRIMARY KEY, DEFAULT gen_random_uuid()` | Unique event identifier. |
+| `userId` | `UUID` | `FOREIGN KEY (public.profiles.id) ON DELETE CASCADE` | Creator/owner identifier. |
 | `name` | `VARCHAR(255)` | `NOT NULL` | Name or celebration title. |
 | `type` | `VARCHAR(100)` | `NOT NULL, DEFAULT 'Wedding'` | Event category aligned with frontend types. |
 | `date` | `TIMESTAMPTZ` | `NOT NULL` | Scheduled date of celebration. |
@@ -73,6 +76,7 @@ Stores events and celebrations created by users.
 | `budget` | `DECIMAL(12, 2)` | `NOT NULL, DEFAULT 0.00` | Target financial budget. |
 | `guestCount` | `INTEGER` | `NOT NULL, DEFAULT 0` | Target guest count. |
 | `theme` | `VARCHAR(255)` | `NULLABLE` | Event theme or aesthetic. |
+| `currency` | `VARCHAR(10)` | `NOT NULL, DEFAULT 'INR'` | Currency code for budget. |
 | `status` | `VARCHAR(50)` | `NOT NULL, DEFAULT 'planning'` | Planning lifecycle state. |
 | `createdAt` | `TIMESTAMPTZ` | `NOT NULL, DEFAULT now()` | Creation timestamp. |
 | `updatedAt` | `TIMESTAMPTZ` | `NOT NULL` | Auto-updating timestamp. |

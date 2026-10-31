@@ -225,7 +225,7 @@ npm run build
 | Phase | Description | Status |
 |---|---|---|
 | **Phase 1** | **Backend Foundation, Supabase/Prisma Setup, AI Scaffold, Tests & Docs** | **✅ Completed** |
-| Phase 2 | Authentication & Event Management | ⏳ Planned |
+| **Phase 2** | **Authentication, User Profiles & Event Management CRUD** | **✅ Completed** |
 | Phase 3 | Budget, Guests & Timeline | ⏳ Planned |
 | Phase 4 | Community Vendor Recommendation System | ⏳ Planned |
 | Phase 5 | Personalized Ideas AI (Gemini Integration) | ⏳ Planned |
@@ -233,3 +233,27 @@ npm run build
 | Phase 7 | AI Co-Pilot (Interactive Assistance) | ⏳ Planned |
 
 For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMAP.md`](docs/BACKEND_ROADMAP.md).
+
+---
+
+## 11. Phase 2 Features & Endpoints
+
+### Authentication & Profile APIs
+- `GET /api/users/me` — Authenticated profile retrieval & idempotent auto-provisioning
+- `PATCH /api/users/me` — Permitted profile update (`fullName`, `avatarUrl`, `phoneNumber`)
+- `GET /api/users/me/events` — Authenticated user's events list
+
+### Event Management APIs
+- `POST /api/events` — Create event (ownership strictly assigned to authenticated user)
+- `GET /api/events` — List user's events with pagination, filtering, and sorting
+- `GET /api/events/:eventId` — Retrieve event details (ownership verified, 404 for inaccessible)
+- `PATCH /api/events/:eventId` — Partial update event fields (cannot transfer ownership)
+- `DELETE /api/events/:eventId` — Delete user's event (leaves shared records untouched)
+
+### Documentation Links
+- [`docs/architecture.md`](docs/architecture.md) — System architecture & request flow
+- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference
+- [`docs/database-design.md`](docs/database-design.md) — Profile and Event schema design
+- [`docs/authentication.md`](docs/authentication.md) — Supabase Auth and JWT verification
+- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports
+- [`docs/phase-2-completion.md`](docs/phase-2-completion.md) — Phase 2 completion report

@@ -51,7 +51,7 @@ const DIETARY_TAGS = [
 
 export const EventWizardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { createEvent, currency } = useAppStore();
+  const { createEventAsync, currency } = useAppStore();
 
   const [step, setStep] = useState<number>(1);
   const totalSteps = 3;
@@ -108,67 +108,65 @@ export const EventWizardPage: React.FC = () => {
     setStep((s) => Math.min(s + 1, totalSteps));
   };
 
-  const handleCreatePlan = () => {
+  const handleCreatePlan = async () => {
     setIsCreating(true);
 
     const adultsCount = Math.round(expectedGuests * 0.8);
     const childrenCount = Math.round(expectedGuests * 0.15);
     const elderlyCount = expectedGuests - adultsCount - childrenCount;
 
-    setTimeout(() => {
-      const newEventId = createEvent({
-        name,
-        category,
-        occasionDescription: occasionDescription || `${category} celebration for ${expectedGuests} guests at ${location}.`,
-        date,
-        location,
-        expectedGuests,
-        guestBreakdown: {
-          adults: adultsCount,
-          children: childrenCount,
-          elderly: Math.max(0, elderlyCount),
-        },
-        dietaryPreferences: dietary,
-        accessibilityRequirements: ['Standard accessibility'],
-        preferences: {
-          atmosphere: theme,
-          style: theme,
-          food: dietary.join(', '),
-          decoration: `${theme} aesthetic styling`,
-          photography: 'Candid & formal portraits',
-          entertainment: 'Ambient & celebratory music',
-          cultural: 'Traditional and modern fusion',
-        },
-        priorities: {
-          foodQuality: 5,
-          guestExperience: 5,
-          venue: 4,
-          decoration: 4,
-          photography: 4,
-          entertainment: 3,
-          accessibility: 4,
-        },
-        mustHaves: ['Quality hospitality', 'Guest comfort'],
-        avoidances: ['Unnecessary delays'],
-        totalBudget,
-        preferredSpendingLevel: 'balanced',
-        currency: selectedCurrency,
-        status: 'planning',
+    const newEventId = await createEventAsync({
+      name,
+      category,
+      occasionDescription: occasionDescription || `${category} celebration for ${expectedGuests} guests at ${location}.`,
+      date,
+      location,
+      expectedGuests,
+      guestBreakdown: {
+        adults: adultsCount,
+        children: childrenCount,
+        elderly: Math.max(0, elderlyCount),
+      },
+      dietaryPreferences: dietary,
+      accessibilityRequirements: ['Standard accessibility'],
+      preferences: {
+        atmosphere: theme,
+        style: theme,
+        food: dietary.join(', '),
+        decoration: `${theme} aesthetic styling`,
+        photography: 'Candid & formal portraits',
+        entertainment: 'Ambient & celebratory music',
+        cultural: 'Traditional and modern fusion',
+      },
+      priorities: {
+        foodQuality: 5,
+        guestExperience: 5,
+        venue: 4,
+        decoration: 4,
+        photography: 4,
+        entertainment: 3,
+        accessibility: 4,
+      },
+      mustHaves: ['Quality hospitality', 'Guest comfort'],
+      avoidances: ['Unnecessary delays'],
+      totalBudget,
+      preferredSpendingLevel: 'balanced',
+      currency: selectedCurrency,
+      status: 'planning',
+    });
+
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
       });
+    } catch (e) {
+      // Fallback gracefully
+    }
 
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-      } catch (e) {
-        // Fallback gracefully
-      }
-
-      setIsCreating(false);
-      navigate(`/app/events/${newEventId}/overview`);
-    }, 600);
+    setIsCreating(false);
+    navigate(`/app/events/${newEventId}/overview`);
   };
 
   return (
@@ -191,18 +189,16 @@ export const EventWizardPage: React.FC = () => {
       <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
         <div className="flex items-center justify-between text-xs font-semibold">
           <div
-            className={`flex items-center gap-2 ${
-              step >= 1 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
-            }`}
+            className={`flex items-center gap-2 ${step >= 1 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+              }`}
           >
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                step > 1
-                  ? 'bg-indigo-600 text-white'
-                  : step === 1
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${step > 1
+                ? 'bg-indigo-600 text-white'
+                : step === 1
                   ? 'border-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-              }`}
+                }`}
             >
               {step > 1 ? <Check className="w-3.5 h-3.5" /> : '1'}
             </div>
@@ -217,18 +213,16 @@ export const EventWizardPage: React.FC = () => {
           </div>
 
           <div
-            className={`flex items-center gap-2 ${
-              step >= 2 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
-            }`}
+            className={`flex items-center gap-2 ${step >= 2 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+              }`}
           >
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                step > 2
-                  ? 'bg-indigo-600 text-white'
-                  : step === 2
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${step > 2
+                ? 'bg-indigo-600 text-white'
+                : step === 2
                   ? 'border-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-              }`}
+                }`}
             >
               {step > 2 ? <Check className="w-3.5 h-3.5" /> : '2'}
             </div>
@@ -243,16 +237,14 @@ export const EventWizardPage: React.FC = () => {
           </div>
 
           <div
-            className={`flex items-center gap-2 ${
-              step === 3 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
-            }`}
+            className={`flex items-center gap-2 ${step === 3 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+              }`}
           >
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                step === 3
-                  ? 'border-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-              }`}
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${step === 3
+                ? 'border-2 border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                }`}
             >
               3
             </div>
@@ -424,11 +416,10 @@ export const EventWizardPage: React.FC = () => {
                   key={thm}
                   type="button"
                   onClick={() => setTheme(thm)}
-                  className={`p-2.5 rounded-lg text-xs font-medium border text-left transition-colors flex items-center justify-between ${
-                    theme === thm
-                      ? 'border-indigo-600 bg-indigo-50/70 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/50 dark:text-indigo-300 font-semibold'
-                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                  }`}
+                  className={`p-2.5 rounded-lg text-xs font-medium border text-left transition-colors flex items-center justify-between ${theme === thm
+                    ? 'border-indigo-600 bg-indigo-50/70 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/50 dark:text-indigo-300 font-semibold'
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    }`}
                 >
                   <span className="truncate">{thm}</span>
                   {theme === thm && <Check className="w-3.5 h-3.5 shrink-0 text-indigo-600" />}
@@ -449,11 +440,10 @@ export const EventWizardPage: React.FC = () => {
                     key={tag}
                     type="button"
                     onClick={() => toggleDiet(tag)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      active
-                        ? 'border-indigo-600 bg-indigo-600 text-white dark:border-indigo-400 dark:bg-indigo-500'
-                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${active
+                      ? 'border-indigo-600 bg-indigo-600 text-white dark:border-indigo-400 dark:bg-indigo-500'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
                   >
                     {tag}
                   </button>
