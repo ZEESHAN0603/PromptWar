@@ -1,0 +1,6 @@
+{
+  "name": "EventPilot AI",
+  "description": "Intelligent celebration and event planning workspace for budget, timeline, guests, vendors, and adaptive re-planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

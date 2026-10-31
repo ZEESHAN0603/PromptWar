@@ -1,0 +1,1227 @@
+# TASK: Build the Complete Frontend for an AI-Powered Celebration & Event Planner
+
+You are a senior frontend engineer, UI/UX designer, and product architect.
+
+Your task is to design and develop a complete, polished, responsive, and fully functional frontend for an AI-powered Celebration & Event Planning application based on the Prompt Wars Virtual – Challenge 5 problem statement.
+
+**Project Name:** EventPilot AI
+
+**Project Objective:**
+
+Build an intelligent event-planning workspace that helps individuals, families, and event organizers plan, manage, and execute celebrations within their budget, preferences, and deadlines.
+
+This must NOT be a simple AI chatbot or a static dashboard.
+
+The application must provide a complete event-planning experience, including event creation, personalized planning, budget management, timeline management, vendor coordination, personalized suggestions, and adaptive plan modification.
+
+IMPORTANT: We are developing the FRONTEND FIRST.
+
+Do not develop the backend or integrate real AI APIs during this phase.
+
+All frontend interactions must work using structured mock data, frontend state management, and localStorage persistence. However, structure the application so that backend APIs and a real GenAI service can be integrated later without rewriting the entire frontend.
+
+Do not create documentation, README files, technical reports, or unnecessary markdown files.
+
+Do not perform Git commits or Git pushes.
+
+---
+
+# 1. FIRST: INSPECT THE EXISTING PROJECT
+
+Before writing or modifying code:
+
+1. Inspect the complete existing project structure.
+2. Identify the current frontend framework and installed dependencies.
+3. Inspect existing components, routing, styling, and configuration.
+4. Identify reusable components and existing conventions.
+5. Preserve useful existing implementations.
+6. Do not overwrite unrelated user code.
+7. Do not unnecessarily recreate an existing project.
+
+If the repository is empty, initialize the frontend using:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- React Router
+- Zustand
+- React Hook Form
+- Zod
+- Recharts
+- Lucide React
+
+Use npm unless the existing project uses another package manager.
+
+After inspection, begin implementing the complete frontend. Do not stop at project analysis or just provide a plan.
+
+---
+
+# 2. UNDERSTAND THE ACTUAL PROBLEM STATEMENT
+
+The application must address the following interconnected event-planning challenges:
+
+- Event budget management.
+- Guest count management.
+- Venue planning.
+- Decoration planning.
+- Catering and food planning.
+- Photography and entertainment.
+- Vendor coordination.
+- Task scheduling.
+- Deadline tracking.
+- Personalized event recommendations.
+- Managing last-minute changes.
+
+These responsibilities are interconnected.
+
+For example:
+
+When the guest count increases:
+- Catering requirements change.
+- Food expenses change.
+- Venue capacity requirements change.
+- Seating arrangements change.
+- The overall budget needs recalculation.
+
+When the event date changes:
+- Task deadlines must be recalculated.
+- Dependent tasks may need attention.
+- Overdue tasks must be identified.
+- The existing timeline must be revised.
+
+When the budget decreases:
+- Expense allocations must be adjusted.
+- The application must suggest alternatives.
+- Important user preferences should be preserved.
+- Users should understand the trade-offs.
+
+The application must demonstrate this connected planning experience.
+
+Do not treat these modules as isolated pages.
+
+---
+
+# 3. PRODUCT DESIGN AND VISUAL DIRECTION
+
+Create a premium, modern SaaS application.
+
+The design must feel like a professionally developed event-management product rather than a generic AI-generated dashboard.
+
+Design direction:
+
+- Clean and minimal interface.
+- Elegant typography.
+- Spacious layouts.
+- Clear visual hierarchy.
+- Consistent spacing.
+- Carefully designed cards.
+- Subtle shadows.
+- Rounded corners.
+- Refined charts.
+- Smooth interactions.
+- Professional navigation.
+- Responsive layouts.
+
+Suggested visual identity:
+
+- Primary: Deep navy / charcoal.
+- Accent: Warm coral or elegant violet.
+- Secondary: Soft lavender.
+- Background: Light neutral / off-white.
+- Success: Green.
+- Warning: Amber.
+- Error: Red.
+
+Use consistent design tokens throughout the application.
+
+Avoid:
+- Excessive gradients.
+- Excessive glassmorphism.
+- Too many colors.
+- Oversized headings.
+- Unnecessary animations.
+- Huge empty spaces.
+- Generic repetitive dashboard cards.
+- Unnecessary decorative elements.
+
+Use realistic event-related visuals only where they improve the experience.
+
+The interface should be attractive enough for a hackathon product demonstration.
+
+---
+
+# 4. COMPLETE APPLICATION ROUTING
+
+Implement the following frontend routes.
+
+PUBLIC ROUTES:
+
+/
+- Landing page
+
+/login
+- Login page
+
+/signup
+- Registration page
+
+APPLICATION ROUTES:
+
+/app/dashboard
+- Main dashboard
+
+/app/events/new
+- Create event wizard
+
+/app/events/:eventId/overview
+- Event overview
+
+/app/events/:eventId/budget
+- Budget planner
+
+/app/events/:eventId/timeline
+- Timeline and tasks
+
+/app/events/:eventId/guests
+- Guest management
+
+/app/events/:eventId/vendors
+- Vendor management
+
+/app/events/:eventId/ideas
+- Personalized event ideas
+
+/app/events/:eventId/assistant
+- AI planning assistant
+
+/app/settings
+- User settings
+
+All navigation must work.
+
+Protect application routes using a frontend demo authentication state. This is only a frontend demonstration and must not be represented as production backend authentication.
+
+---
+
+# 5. LANDING PAGE
+
+Create a premium landing page explaining the product.
+
+Sections:
+
+1. Navigation bar.
+2. Hero section.
+3. Product introduction.
+4. Main features.
+5. How it works.
+6. Event categories.
+7. Adaptive planning demonstration.
+8. Product dashboard preview.
+9. Call to action.
+10. Footer.
+
+Hero content:
+
+Headline:
+"Every Celebration. Thoughtfully Planned."
+
+Supporting text:
+"Plan smarter celebrations with an intelligent event planner that brings your budget, guests, timeline, vendors, and ideas together in one place."
+
+Primary CTA:
+"Start Planning"
+
+Secondary CTA:
+"Explore Features"
+
+Show a strong visual representation of the event-planning dashboard.
+
+The landing page must have functional navigation and call-to-action buttons.
+
+---
+
+# 6. AUTHENTICATION UI
+
+Build:
+
+- Login screen.
+- Registration screen.
+- Password visibility toggle.
+- Form validation.
+- Show/hide password.
+- Error states.
+- Loading states.
+- Success notifications.
+
+For frontend demonstration, use a mock authentication service.
+
+Never expose real API keys or implement fake security claims.
+
+---
+
+# 7. APPLICATION LAYOUT
+
+Build a reusable application layout.
+
+LEFT SIDEBAR:
+
+- Logo and application name.
+- Dashboard.
+- My Events.
+- Create Event.
+- Settings.
+- User profile.
+
+When an event is selected, display event-specific navigation:
+
+- Overview.
+- Budget.
+- Timeline.
+- Guests.
+- Vendors.
+- Ideas.
+- AI Assistant.
+
+TOP HEADER:
+
+- Page title.
+- Breadcrumb navigation.
+- Current event selector.
+- Search interface.
+- Notification icon.
+- User profile menu.
+
+Ensure the sidebar becomes a responsive drawer on mobile.
+
+Use consistent active navigation states.
+
+---
+
+# 8. DASHBOARD PAGE
+
+Build a complete dashboard showing:
+
+- Greeting and user information.
+- Upcoming events.
+- Total events.
+- Upcoming deadlines.
+- Overall budget utilization.
+- Pending tasks.
+- Completed tasks.
+- Upcoming event countdown.
+- Recent activity.
+- Quick actions.
+
+Use meaningful visualizations and data.
+
+Include:
+
+A. Event cards
+
+Each event card should show:
+- Event name.
+- Event category.
+- Event date.
+- Guest count.
+- Budget.
+- Completion percentage.
+- Event image or visual.
+- View event action.
+
+B. Budget summary
+
+Show:
+- Total planned budget.
+- Allocated budget.
+- Actual spending.
+- Remaining budget.
+
+C. Upcoming tasks
+
+Display:
+- Task name.
+- Due date.
+- Priority.
+- Status.
+
+D. Quick actions
+
+- Create new event.
+- Manage budget.
+- View timeline.
+- Open AI assistant.
+
+All cards and actions should navigate to their relevant pages.
+
+---
+
+# 9. EVENT CREATION WIZARD
+
+This is one of the most important screens.
+
+Build a multi-step event creation wizard.
+
+Use a clear step indicator and allow users to navigate between completed steps.
+
+STEP 1: EVENT INFORMATION
+
+Fields:
+- Event name.
+- Event type.
+- Occasion description.
+- Event date.
+- Location.
+- Expected guest count.
+
+Event categories:
+- Wedding.
+- Birthday.
+- Anniversary.
+- Engagement.
+- Baby shower.
+- Corporate event.
+- Community gathering.
+- Festival.
+- Graduation.
+- Other.
+
+STEP 2: BUDGET
+
+Fields:
+- Total available budget.
+- Preferred spending level.
+- Currency.
+
+Use INR as the default currency.
+
+STEP 3: GUEST INFORMATION
+
+Fields:
+- Expected adults.
+- Expected children.
+- Expected elderly guests.
+- Dietary preferences.
+- Accessibility requirements.
+
+STEP 4: PREFERENCES
+
+Ask about:
+- Desired atmosphere.
+- Preferred event style.
+- Food preferences.
+- Decoration preferences.
+- Photography priorities.
+- Entertainment preferences.
+- Cultural preferences.
+
+STEP 5: PRIORITIES
+
+Allow users to assign priorities to:
+
+- Food quality.
+- Guest experience.
+- Venue.
+- Decoration.
+- Photography.
+- Entertainment.
+- Accessibility.
+
+Include must-have requirements and things the user wants to avoid.
+
+STEP 6: REVIEW
+
+Display all entered information.
+
+Allow users to edit previous answers.
+
+FINAL ACTION:
+
+"Generate My Event Plan"
+
+When clicked:
+
+- Validate all inputs.
+- Create the event in frontend state.
+- Save event information to localStorage.
+- Generate a structured mock event plan.
+- Navigate to the event overview page.
+
+The wizard should work completely without a backend.
+
+---
+
+# 10. EVENT OVERVIEW PAGE
+
+Create a comprehensive event workspace.
+
+The overview must show:
+
+- Event title.
+- Event date.
+- Countdown.
+- Event category.
+- Expected guest count.
+- Total budget.
+- Planning completion.
+- Current status.
+
+Main sections:
+
+A. Planning summary.
+
+B. Budget overview.
+
+C. Upcoming timeline tasks.
+
+D. Vendor booking progress.
+
+E. Guest summary.
+
+F. Personalized suggestions.
+
+G. AI planning insights.
+
+H. Recent event activity.
+
+Include an event action menu for editing the event, changing its date, updating the budget, and viewing plan history.
+
+---
+
+# 11. SMART BUDGET PLANNER
+
+Build a fully interactive budget management interface.
+
+Budget categories:
+
+- Venue.
+- Catering.
+- Decoration.
+- Photography.
+- Entertainment.
+- Transportation.
+- Invitations.
+- Accommodation.
+- Other expenses.
+- Contingency.
+
+Show:
+
+- Total budget.
+- Total allocated.
+- Actual expenditure.
+- Remaining budget.
+- Budget utilization.
+- Category-wise breakdown.
+- Planned versus actual expenses.
+
+Use charts where appropriate.
+
+Functional requirements:
+
+1. Add a budget category.
+2. Edit a category.
+3. Delete a category.
+4. Update allocated amounts.
+5. Enter actual expenses.
+6. Recalculate totals automatically.
+7. Detect budget overruns.
+8. Display remaining budget.
+9. Show category percentages.
+10. Suggest alternative allocations through mock AI suggestions.
+
+Add a budget scenario comparison section.
+
+Example:
+
+Original budget: ₹8,00,000.
+
+Updated budget: ₹7,00,000.
+
+Show:
+- Original allocation.
+- Updated allocation.
+- Difference.
+- Categories affected.
+- Potential compromises.
+
+Never hardcode these example values into the calculation logic.
+
+Calculations must be based on actual frontend state.
+
+Make every chart and budget component respond to changes.
+
+Clearly label generated amounts as estimates, not confirmed vendor prices.
+
+---
+
+# 12. TIMELINE AND TASK MANAGEMENT
+
+Build a complete event timeline module.
+
+Views:
+
+- List view.
+- Timeline view.
+- Calendar view.
+- Kanban view.
+
+Task fields:
+
+- Task title.
+- Description.
+- Category.
+- Due date.
+- Priority.
+- Status.
+- Dependencies.
+
+Priority:
+- Critical.
+- High.
+- Medium.
+- Low.
+
+Status:
+- Pending.
+- In progress.
+- Completed.
+- Overdue.
+
+Features:
+
+- Create task.
+- Edit task.
+- Delete task.
+- Mark complete.
+- Change priority.
+- Change due date.
+- Filter by status.
+- Filter by priority.
+- Search tasks.
+- Display overdue tasks.
+- Show task dependencies.
+
+When an event date changes, update relevant task deadlines.
+
+The interface should identify tasks that depend on earlier tasks.
+
+Example:
+
+Venue confirmation should happen before finalizing several other arrangements.
+
+Display dependency indicators between connected tasks.
+
+Task completion should update the overall event-planning progress.
+
+Do not use static task cards without functional actions.
+
+---
+
+# 13. GUEST MANAGEMENT
+
+Build a guest-management interface.
+
+Features:
+
+- Guest list.
+- Add guest.
+- Edit guest.
+- Remove guest.
+- Search guests.
+- Filter attendance status.
+- Guest categories.
+- Dietary requirements.
+- Special accommodation requirements.
+
+Guest fields:
+
+- Name.
+- Contact information.
+- Category.
+- Number of accompanying guests.
+- RSVP status.
+- Dietary preference.
+- Notes.
+
+RSVP statuses:
+
+- Pending.
+- Confirmed.
+- Declined.
+
+Show:
+
+- Total invited.
+- Confirmed.
+- Pending.
+- Declined.
+- Expected attendance.
+
+When the expected guest count changes, make it possible to use the updated count in the event budget and planning revision flow.
+
+Do not implement real invitation delivery or messaging services.
+
+---
+
+# 14. VENDOR MANAGEMENT
+
+Build a complete vendor management interface.
+
+Vendor categories:
+
+- Venue.
+- Catering.
+- Decoration.
+- Photography.
+- Entertainment.
+- Transportation.
+- Accommodation.
+
+Features:
+
+- Add vendor.
+- Edit vendor.
+- Remove vendor.
+- Search vendor.
+- Filter by category.
+- Manage contact information.
+- Track booking status.
+- Add quotations.
+- Compare quotations.
+
+Vendor fields:
+
+- Vendor name.
+- Service category.
+- Contact person.
+- Email.
+- Phone number.
+- Quoted price.
+- Capacity.
+- Package inclusions.
+- Exclusions.
+- Additional charges.
+- Notes.
+- Booking status.
+
+Booking statuses:
+
+- Researching.
+- Contacted.
+- Quotation received.
+- Shortlisted.
+- Confirmed.
+- Rejected.
+
+Quotation comparison must allow users to compare two or more user-entered quotations.
+
+Display:
+- Quoted price.
+- Capacity.
+- Included services.
+- Excluded services.
+- Additional charges.
+- Important clarification points.
+
+Allow users to identify the most suitable option based on their requirements.
+
+IMPORTANT:
+
+Do not display fictional live availability or represent mock vendors as verified service providers.
+
+Clearly distinguish user-entered quotation data from estimates.
+
+---
+
+# 15. PERSONALIZED EVENT IDEAS
+
+Create an attractive personalized ideas page.
+
+The page should present recommendations based on:
+
+- Event category.
+- Budget.
+- Guest count.
+- Age groups.
+- User preferences.
+- Cultural preferences.
+- Accessibility needs.
+- Preferred atmosphere.
+
+Recommendation categories:
+
+- Event themes.
+- Decoration ideas.
+- Food and menu ideas.
+- Entertainment.
+- Activities.
+- Photography.
+- Venue styles.
+
+Each recommendation card should include:
+
+- Title.
+- Description.
+- Category.
+- Estimated budget range where appropriate.
+- Why it matches the user's preferences.
+- Save recommendation action.
+- View details action.
+
+Include alternative recommendations when a user selects an idea that is too expensive or unsuitable.
+
+Use clearly labelled demonstration suggestions until a real AI service is connected.
+
+---
+
+# 16. AI EVENT PLANNING ASSISTANT
+
+This is a major product feature.
+
+Build a polished AI assistant interface.
+
+Features:
+
+- Conversation history.
+- Chat input.
+- Send button.
+- Loading animation.
+- Assistant response cards.
+- Suggested questions.
+- Event context panel.
+- Budget context.
+- Timeline context.
+- Personalized recommendations.
+
+Suggested prompts:
+
+- "Help me reduce my event expenses."
+- "Suggest a better decoration theme."
+- "What should I complete this week?"
+- "Compare my catering quotations."
+- "How can I accommodate 50 additional guests?"
+- "Create a more affordable event plan."
+
+The assistant should understand the existing event state in the frontend.
+
+For this frontend-only phase:
+
+- Implement an isolated mock AI service.
+- Use structured responses and contextual demo scenarios.
+- Avoid making random, unrelated chatbot responses.
+- Provide meaningful responses to the supported demonstration scenarios.
+- Provide loading, empty, error and success states.
+
+Do not call a real Gemini/OpenAI API directly from the browser.
+
+Keep the AI service in a separate module so it can later be replaced by a backend API integration.
+
+Clearly indicate that AI responses are demonstration/simulated responses until connected to a real AI service.
+
+---
+
+# 17. MOST IMPORTANT: ADAPTIVE EVENT PLANNING
+
+This is the most important differentiating functionality.
+
+Implement a fully interactive plan-modification flow.
+
+The application must allow a user to modify:
+
+- Budget.
+- Guest count.
+- Event date.
+- Food preferences.
+- Decoration preferences.
+- Priority levels.
+- Other event requirements.
+
+Example demonstration scenario:
+
+ORIGINAL EVENT:
+
+Event: Wedding
+Budget: ₹8,00,000
+Guests: 200
+Date: Existing event date
+
+USER REQUEST:
+
+"Actually, our budget has decreased to ₹7,00,000. We now expect 250 guests and the event is happening two weeks earlier."
+
+The application should:
+
+1. Detect the changed requirements.
+2. Compare the old and new values.
+3. Identify affected planning components.
+4. Recalculate budget totals.
+5. Update relevant task deadlines.
+6. Highlight catering changes.
+7. Highlight venue capacity concerns.
+8. Display newly urgent tasks.
+9. Generate alternative suggestions.
+10. Preserve unaffected user decisions.
+
+Build a plan-impact review interface before applying the revision.
+
+Display:
+
+A. Changes detected.
+
+B. Budget impact.
+
+C. Timeline impact.
+
+D. Guest and catering impact.
+
+E. Vendor impact.
+
+F. Recommended alternatives.
+
+G. Unchanged information.
+
+Allow the user to:
+
+- Review changes.
+- Accept changes.
+- Reject changes.
+- Edit suggested changes.
+
+After confirmation:
+
+- Update the existing event state.
+- Preserve unaffected records.
+- Update derived budget and timeline information.
+- Save a new plan version.
+- Show a success notification.
+
+Add plan history so the user can view previous versions and compare revisions.
+
+Do not simply replace the entire plan with a fresh generated plan.
+
+Implement calculations and date changes deterministically in frontend utility functions.
+
+The mock AI service can generate explanations and suggestions, but the actual numbers and dates must come from frontend calculations.
+
+---
+
+# 18. SETTINGS PAGE
+
+Implement:
+
+- User profile.
+- Personal information.
+- Theme preference.
+- Notification preferences.
+- Currency preference.
+- Logout.
+
+Dark mode can be included if it can be implemented consistently.
+
+---
+
+# 19. FRONTEND STATE MANAGEMENT
+
+Use Zustand for application state.
+
+Create separate stores or clearly separated state slices for:
+
+- Authentication.
+- Events.
+- Budget.
+- Tasks.
+- Guests.
+- Vendors.
+- AI conversations.
+- Plan versions.
+- User settings.
+
+Persist relevant state using localStorage.
+
+Requirements:
+
+1. Data should survive page refreshes.
+2. Created events should remain available.
+3. Budget modifications should persist.
+4. Task completion should persist.
+5. Vendor information should persist.
+6. Plan revisions should persist.
+7. User settings should persist.
+
+Keep state management modular.
+
+Avoid putting all application logic into one component.
+
+---
+
+# 20. API-READY ARCHITECTURE
+
+Although backend development is not part of this phase, structure the frontend for future integration.
+
+Create isolated service modules for:
+
+- Authentication.
+- Events.
+- Budget.
+- Timeline.
+- Guests.
+- Vendors.
+- AI assistant.
+
+Use mock implementations behind these service interfaces.
+
+Avoid placing mock data directly inside UI components.
+
+Centralize data types and TypeScript interfaces.
+
+Keep calculation logic in utility functions.
+
+The future backend should be replaceable without rewriting UI components.
+
+Do not create actual backend server files.
+
+Do not expose API keys.
+
+---
+
+# 21. REUSABLE COMPONENTS
+
+Build reusable components such as:
+
+- Application sidebar.
+- Top navigation.
+- Breadcrumb.
+- Page header.
+- Event card.
+- Stat card.
+- Budget chart.
+- Progress indicator.
+- Task card.
+- Timeline item.
+- Priority badge.
+- Status badge.
+- Vendor card.
+- Quotation comparison table.
+- Guest table.
+- Modal.
+- Confirmation dialog.
+- Dropdown menu.
+- Search field.
+- Filter panel.
+- Empty state.
+- Loading skeleton.
+- Toast notification.
+- AI message bubble.
+- Change impact card.
+- Plan version comparison.
+
+Avoid duplicating the same UI implementation across different screens.
+
+---
+
+# 22. INTERACTION AND QUALITY REQUIREMENTS
+
+Every important button must have an actual working interaction.
+
+Examples:
+
+- Add Event must open the wizard.
+- Save Event must create an event.
+- Edit Budget must update the budget.
+- Add Task must create a task.
+- Complete Task must update its status.
+- Add Vendor must create a vendor record.
+- Compare Quotes must display a comparison.
+- Save Idea must update saved ideas.
+- Send Message must produce an assistant response.
+- Modify Plan must initiate the adaptive planning workflow.
+- Confirm Changes must persist the revised plan.
+- Logout must clear the demo authentication state.
+
+Implement:
+
+- Form validation.
+- Loading indicators.
+- Error handling.
+- Success messages.
+- Confirmation dialogs.
+- Empty states.
+- Responsive behavior.
+- Keyboard-accessible controls.
+- Useful hover and focus states.
+
+Never leave visible buttons that do nothing.
+
+Avoid unnecessary placeholder pages.
+
+---
+
+# 23. DEMONSTRATION DATA
+
+Create realistic demo data to make the application immediately usable.
+
+Use the wedding scenario from the problem statement:
+
+Event: Wedding
+Budget: ₹8,00,000
+Expected guests: 200
+Planning duration: Four months
+
+Include:
+
+- Categorized sample budget.
+- Sample tasks.
+- Task dependencies.
+- Sample vendor records.
+- Sample quotations.
+- Guest records.
+- Personalized suggestions.
+- AI conversation examples.
+
+Clearly indicate that all vendors, quotations and sample data are demonstration records, not verified real-world bookings.
+
+Also include the adaptive scenario that changes the budget, guest count and event date.
+
+Users should be able to explore all major functionalities without manually creating everything.
+
+Do not hardcode example values into business logic.
+
+---
+
+# 24. RESPONSIVENESS
+
+The entire application must support:
+
+- Desktop.
+- Laptop.
+- Tablet.
+- Mobile.
+
+Requirements:
+
+- Responsive sidebar.
+- Responsive navigation.
+- Responsive data cards.
+- Horizontally scrollable tables where needed.
+- Mobile-friendly forms.
+- Responsive charts.
+- Proper spacing.
+- No horizontal page overflow.
+
+Ensure all pages are usable on smaller screens.
+
+---
+
+# 25. CODE QUALITY AND IMPLEMENTATION RULES
+
+Follow these rules:
+
+- Use TypeScript properly.
+- Prefer reusable components.
+- Keep components reasonably small.
+- Use clear folder organization.
+- Use meaningful variable names.
+- Avoid unnecessary any.
+- Avoid duplicated code.
+- Keep business calculations outside UI components.
+- Use proper React hooks.
+- Avoid unnecessary re-renders.
+- Handle loading and error states.
+- Validate user input.
+- Do not introduce unnecessary packages.
+- Do not use real API credentials.
+- Do not create a fake backend.
+- Do not leave broken routes.
+- Do not leave nonfunctional buttons.
+- Do not use static HTML as a substitute for a functional React application.
+
+---
+
+# 26. FINAL ACCEPTANCE CRITERIA
+
+The frontend is considered complete only when the following flow works:
+
+1. User opens the application.
+2. User explores the landing page.
+3. User enters the application.
+4. User creates a new event.
+5. User enters the event budget, guest count and preferences.
+6. User generates an event plan.
+7. User views the event dashboard.
+8. User modifies the budget.
+9. User creates and completes timeline tasks.
+10. User manages guest records.
+11. User adds vendors and compares quotations.
+12. User explores personalized ideas.
+13. User interacts with the AI assistant.
+14. User changes the event budget, guest count and date.
+15. Application identifies the impact of those changes.
+16. User reviews and confirms the changes.
+17. Application updates the existing plan.
+18. User can view the revised plan and previous plan version.
+19. All relevant information remains available after refresh.
+
+All routes must load correctly.
+
+All important interactions must work.
+
+The application must not depend on a backend to demonstrate its frontend functionality.
+
+---
+
+# 27. FINAL EXECUTION INSTRUCTIONS
+
+Start by inspecting the existing repository.
+
+Then implement the entire frontend, not merely a design prototype.
+
+Work systematically:
+
+1. Inspect the existing project.
+2. Establish or reuse the design system.
+3. Implement routing and application layout.
+4. Implement reusable components.
+5. Implement landing and authentication pages.
+6. Implement event creation.
+7. Implement dashboard and event workspace.
+8. Implement budget management.
+9. Implement timeline and tasks.
+10. Implement guest management.
+11. Implement vendor management.
+12. Implement personalized ideas.
+13. Implement AI assistant demonstration.
+14. Implement adaptive plan modification.
+15. Implement frontend state persistence.
+16. Test all routes and interactions.
+17. Fix runtime, TypeScript and build errors.
+
+After implementation, run the available project checks and start the development server to verify the application.
+
+Do not stop after scaffolding.
+
+Do not stop after implementing the dashboard.
+
+Do not replace functional features with static mockups.
+
+Complete all the major screens and interactions.
+
+IMPORTANT PROJECT BOUNDARIES:
+
+- Frontend development only.
+- No backend implementation.
+- No real AI API integration.
+- No real vendor marketplace integration.
+- No real payment integration.
+- No real email or SMS integration.
+- No documentation generation.
+- No README creation.
+- No Git commit.
+- No Git push.
+
+The final result must be a complete, polished, interactive frontend that is ready for a later backend and real GenAI integration.
+
+Build a product that demonstrates the real purpose of the Challenge 5 problem statement:
+
+**Help people turn an event idea into a realistic, manageable plan — and intelligently adapt that plan whenever their requirements change.**

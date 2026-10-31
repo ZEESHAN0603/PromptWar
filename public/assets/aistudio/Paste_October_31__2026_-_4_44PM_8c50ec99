@@ -1,0 +1,1260 @@
+# EventPilot AI — Complete Frontend Enhancement & Integration Master Prompt
+
+## 1. Project Context
+
+I am developing **EventPilot AI**, an AI-powered celebration and event-planning platform.
+
+The platform helps users plan and manage:
+
+- Weddings
+- Birthday Celebrations
+- Engagement Ceremonies
+- Anniversary Celebrations
+- Corporate Events
+- Other Personal Celebrations
+
+The existing application contains:
+
+- Event Overview
+- Budget Planner
+- Timeline & Tasks
+- Guest Management
+- Vendors & Quotes
+- Personalized Ideas
+- AI Co-Pilot
+- Adaptive Re-Planning
+- Event Creation
+
+I want to improve the application's overall user experience and functionality by implementing three major enhancements:
+
+1. Community-Driven Vendor Recommendation System.
+2. User Dashboard and Complete Event Management.
+3. Simplified Adaptive Re-Planning.
+
+**IMPORTANT:** This is an enhancement to an existing project, not a request to create a new application.
+
+First inspect the entire existing project structure, routing, components, state management, data models and styling. Understand the existing implementation before making modifications.
+
+Preserve existing working features and integrate the new functionality into the current architecture.
+
+This implementation is frontend-only, using mock data and localStorage. Do not implement backend APIs or real AI integrations.
+
+---
+
+# PART A — USER DASHBOARD & EVENT MANAGEMENT
+
+## 2. Change the Default Post-Login Experience
+
+Currently, the application opens directly into an individual event workspace.
+
+Change the user journey.
+
+After successful login, the user must land on:
+
+**My Celebrations — User Dashboard**
+
+The dashboard should display all celebrations created by the currently logged-in user.
+
+Expected navigation:
+
+Login → My Celebrations Dashboard → Select Event → Event Workspace.
+
+Do not automatically open the previously selected event after login.
+
+The dashboard must become the central location for managing all user-created events.
+
+## 3. Build the My Celebrations Dashboard
+
+### Dashboard Header
+
+Title: My Celebrations
+
+Subtitle: All your celebrations, plans and special moments in one place.
+
+Primary action:
+
++ Create New Celebration
+
+### Dashboard Statistics
+
+Display dynamic summary cards:
+
+- Total Events
+- Upcoming Events
+- Events In Progress
+- Completed Events
+
+Calculate these values from actual event records instead of hardcoding statistics.
+
+### Event Cards
+
+Display all user-created events in a responsive grid.
+
+Each card should include:
+
+- Event cover image or suitable category illustration.
+- Event name.
+- Event type.
+- Event date.
+- Event location.
+- Days remaining.
+- Total event budget.
+- Expected guest count.
+- Planning completion percentage.
+- Event status.
+
+Event statuses:
+
+- Planning
+- In Progress
+- Completed
+- Cancelled
+
+Use appropriate visual indicators for each status.
+
+### Event Search and Filters
+
+Implement:
+
+- Search by event name.
+- Filter by event type.
+- Filter by event status.
+- Sort by event date.
+- Sort by recently created.
+
+### Event Card Actions
+
+Each event card must support:
+
+1. Open Event
+2. Edit Event
+3. Duplicate Event
+4. Delete Event
+
+Provide a three-dot menu for secondary actions.
+
+The event card itself should be clickable to open the workspace, but clicking action buttons must not trigger event navigation.
+
+## 4. Create New Celebration — Simplified Wizard
+
+Redesign the existing event creation functionality as a simple three-step wizard.
+
+### Step 1 — Event Details
+
+Required:
+
+- Event Name
+- Event Type
+- Event Date
+- Event Location
+
+Optional:
+
+- Event Description
+
+### Step 2 — Planning Requirements
+
+- Total Budget
+- Expected Guest Count
+- Preferred Theme / Atmosphere
+- Currency
+
+### Step 3 — Review & Create
+
+Display all entered details in a summary.
+
+Allow users to navigate backward and edit their inputs.
+
+Primary action: Create Celebration.
+
+After successful creation:
+
+- Generate a unique event ID.
+- Save the event.
+- Initialize its event-specific planning data.
+- Redirect the user to the newly created event workspace.
+- Show a success notification.
+
+Do not force users to fill optional fields.
+
+Use proper form validation.
+
+## 5. Edit, Duplicate and Delete Events
+
+### Edit Event
+
+Allow users to update:
+
+- Event name.
+- Event type.
+- Event date.
+- Location.
+- Budget.
+- Guest count.
+- Description.
+- Theme preferences.
+
+Save changes and update the dashboard immediately.
+
+### Duplicate Event
+
+Allow users to duplicate an existing event.
+
+The duplicated event must:
+
+- Receive a new unique ID.
+- Have a default name such as "Copy of [Event Name]".
+- Preserve suitable event configuration and planning preferences.
+- Have independent event-specific data.
+- Not overwrite or modify the original event.
+
+Do not copy private user information into unrelated records.
+
+### Delete Event
+
+Add a Delete Event option to every event card.
+
+When selected, display a confirmation modal.
+
+Modal title: Delete This Celebration?
+
+Message:
+
+"Are you sure you want to delete [Event Name]? This action will permanently remove this event and its associated planning information."
+
+Actions:
+
+- Cancel
+- Delete Event
+
+Only delete after explicit confirmation.
+
+After deletion:
+
+- Remove the event from the dashboard.
+- Remove its associated budget allocations.
+- Remove its event-specific tasks.
+- Remove its guest records.
+- Remove its saved vendor relationships.
+- Remove event-specific preferences.
+- Remove its plan versions.
+- Update dashboard statistics.
+
+Deleting an event must never delete shared community vendor records.
+
+Ensure that deleting one event does not affect any other event.
+
+---
+
+# PART B — EVENT WORKSPACE
+
+## 6. Event Workspace Navigation
+
+When a user selects an event card, open the existing Event Workspace.
+
+Display the selected event name in the workspace header.
+
+Add a clear navigation option:
+
+**Back to My Celebrations**
+
+Clicking it should return the user to the dashboard.
+
+Organize the sidebar as follows:
+
+### EVENT WORKSPACE
+
+1. Overview
+2. Budget
+3. Timeline & Tasks
+4. Guest List
+5. Recommended Vendors
+6. Personalized Ideas
+
+### WORKSPACE & HUB
+
+1. All Events Dashboard
+2. Plan New Celebration
+3. Planner Settings
+
+Keep all workspace pages associated with the currently selected event ID.
+
+Switching between events must load the correct event-specific information.
+
+Do not mix data from different events.
+
+---
+
+# PART C — COMMUNITY-DRIVEN VENDOR RECOMMENDATION SYSTEM
+
+## 7. Core Concept
+
+Replace the existing Vendors & Quotes functionality with a:
+
+**Community-Driven Vendor Recommendation System**
+
+This is NOT a vendor marketplace.
+
+Vendors do not register or log in to EventPilot AI.
+
+Customers independently discover, visit, contact or use vendors.
+
+They can contribute vendor information to a shared community database, helping other customers discover suitable vendors.
+
+### Expected Workflow
+
+1. Customer creates an event.
+2. EventPilot AI displays relevant vendors from the community database.
+3. Customer explores the recommendations.
+4. Customer saves suitable vendors to their event.
+5. If no suitable vendor is available, the customer can add their preferred, visited or previously used vendor.
+6. The contribution enters a review process.
+7. Approved vendor information becomes available to other customers.
+8. Other customers discover relevant vendors through personalized recommendations.
+
+The database should grow through customer contributions.
+
+## 8. Rename Existing Navigation
+
+Replace:
+
+Old: Vendors & Quotes
+
+New: Recommended Vendors
+
+The page should contain three primary sections:
+
+- Recommended Vendors
+- My Vendors
+- Add a Vendor
+
+Implement these as tabs or separate routes according to the existing architecture.
+
+## 9. Recommended Vendors Page
+
+Create a professional vendor discovery interface.
+
+### Header
+
+Title: Recommended Vendors
+
+Subtitle:
+
+"Discover vendors contributed by our community for your celebration."
+
+Display:
+
+- Total community vendor records.
+- Vendors relevant to the current event.
+- Recently added vendors.
+
+### Search and Filters
+
+Implement:
+
+- Search by vendor name.
+- Filter by service category.
+- Filter by location.
+- Filter by event type.
+- Filter by approximate budget.
+- Sort by relevance.
+- Sort by recently added.
+
+### Vendor Categories
+
+Include:
+
+- Wedding Venues
+- Catering & Food
+- Decoration & Florals
+- Photography & Videography
+- Entertainment
+- Makeup & Beauty
+- Transportation
+- Event Equipment
+- Other Services
+
+### Vendor Cards
+
+Display:
+
+- Vendor name.
+- Vendor image or category illustration.
+- Service category.
+- City and location.
+- Public business contact information, if contributed and approved for sharing.
+- Website or social media link, if available.
+- Reported price range, if available.
+- Suitable event types.
+- Community contribution information.
+- Last updated date.
+
+Actions:
+
+- View Details
+- Save to My Vendors
+
+Use appropriate informational labels:
+
+- Community Added
+- Recently Added
+- Customer Recommended
+
+Do not fabricate ratings, reviews or verified badges.
+
+### Vendor Details
+
+When a customer clicks View Details, show:
+
+- Vendor name.
+- Category.
+- Location.
+- Public contact details.
+- Website and social links.
+- Reported price information.
+- Package inclusions.
+- Additional charges.
+- Customer-contributed experience.
+- Event suitability.
+- Contribution date.
+- Last updated date.
+
+Display this disclaimer:
+
+"Vendor information is contributed by EventPilot AI users. Prices, contact information and business details may change. Independently verify information with the vendor before making decisions."
+
+Do not implement internal messaging, booking or payment functionality.
+
+## 10. Add a Vendor — Community Contribution
+
+This is a critical feature.
+
+On the Recommended Vendors page, always provide an alternative for users who cannot find a suitable vendor.
+
+Display a prominent section:
+
+**Didn't Find the Right Vendor?**
+
+Description:
+
+"Know a good vendor? Add your preferred or previously visited vendor and help other people planning celebrations."
+
+CTA:
+
++ Add a Vendor
+
+Users must also be allowed to add a vendor even if existing recommendations are available.
+
+### Add Vendor Form
+
+Create a clean form divided into logical sections.
+
+#### Section A — Basic Information
+
+Required:
+
+- Vendor Name.
+- Service Category.
+- City.
+- State.
+
+Optional:
+
+- Public Business Phone.
+- Website.
+- Instagram / Social Media Link.
+- Business Address.
+
+#### Section B — Pricing Information
+
+Optional:
+
+- Approximate Price Range.
+- Reported Quotation Amount.
+- Currency.
+- Package Inclusions.
+- Additional Charges.
+
+Do not require users to provide prices if they do not know them.
+
+#### Section C — Event Suitability
+
+Allow multiple selections:
+
+- Wedding
+- Birthday
+- Engagement
+- Anniversary
+- Corporate Event
+- Other
+
+#### Section D — Customer Experience
+
+Ask how the customer knows this vendor:
+
+- Personally Used This Vendor.
+- Visited This Vendor.
+- Received a Quotation.
+- Recommended by Someone.
+- Found Through Another Source.
+
+Allow optional feedback:
+
+- What did you like about this vendor?
+- Additional information.
+- Personal experience.
+
+Do not force users to submit positive feedback.
+
+#### Section E — Contribution Permission
+
+Include an explicit consent checkbox:
+
+"I agree to share the submitted vendor business information with other EventPilot AI users."
+
+Explain that personal notes and private event information will not be shared.
+
+### Submission Workflow
+
+When the user submits:
+
+1. Validate required information.
+2. Check for possible duplicate records.
+3. If a possible duplicate exists, show the existing record.
+4. Allow the user to add additional information to the existing record or cancel.
+5. Otherwise, create a new vendor contribution.
+6. Assign Pending Review status.
+7. Show a success notification.
+
+Display:
+
+"Thank you for contributing! Your vendor submission is pending review and will appear in community recommendations after approval."
+
+Do not immediately publish unreviewed submissions.
+
+## 11. Duplicate Detection
+
+Implement mock duplicate detection.
+
+Compare:
+
+- Vendor name.
+- Public business phone.
+- City.
+- Category.
+
+If a possible duplicate is found, display:
+
+"This vendor may already exist in our community database."
+
+Provide:
+
+- View Existing Vendor
+- Add Additional Information
+- Cancel Submission
+
+Do not create duplicate records automatically.
+
+## 12. Vendor Moderation
+
+Implement a mock moderation workflow.
+
+Submission statuses:
+
+- Pending Review
+- Approved
+- Rejected
+- Needs More Information
+
+Only Approved vendor records should appear in general recommendations.
+
+Create a lightweight mock admin moderation interface if compatible with the existing application.
+
+Admin actions:
+
+- View submissions.
+- Approve contributions.
+- Reject contributions.
+- Request additional information.
+- Identify duplicates.
+
+Do not claim that any vendor has been independently verified.
+
+## 13. My Vendors
+
+Create a separate page for vendors saved by the current user for the selected event.
+
+Display:
+
+- Vendor name.
+- Category.
+- Location.
+- Reported price.
+- Private notes.
+- Event-specific booking status.
+
+Booking statuses:
+
+- Interested
+- Researching
+- Contacted Independently
+- Quote Received
+- Shortlisted
+- Booked
+- Not Selected
+
+Allow users to:
+
+- Save a recommended vendor.
+- Add personal notes.
+- Enter an independently received quotation.
+- Update booking status.
+- Remove a vendor from their event.
+- Compare selected vendors in the same category.
+
+Important:
+
+My Vendors information is private to the current user and selected event.
+
+Private notes, actual quotations and booking information must never be automatically published to the shared community database.
+
+## 14. Community Recommendation Logic
+
+Build a mock recommendation engine.
+
+Use the following factors:
+
+1. Event type.
+2. Event location.
+3. Vendor category.
+4. User's approximate budget.
+5. Vendor's event suitability.
+6. Available contribution information.
+7. Recency of information.
+
+Example:
+
+A user plans a wedding in Chennai with a catering budget of ₹2,50,000.
+
+Prioritize approved community vendors that:
+
+- Provide catering services.
+- Are suitable for weddings.
+- Are located in or near Chennai.
+- Have reported prices within or near the budget.
+
+If no suitable vendors exist, display:
+
+"We couldn't find a suitable vendor in our community database yet."
+
+Provide:
+
+**Add Your Preferred Vendor**
+
+Never invent vendors, prices, reviews or contact details.
+
+Use realistic seeded demonstration records and clearly identify them as demonstration data.
+
+## 15. Integration with Personalized Ideas
+
+Connect Personalized Ideas with Recommended Vendors.
+
+Example:
+
+AI suggests:
+
+"Twilight Botanical Fairy-Light Canopy"
+
+Provide an action:
+
+**Find Related Vendors**
+
+On clicking:
+
+- Navigate to Recommended Vendors.
+- Apply the relevant category filter.
+- Show suitable community vendors.
+
+Category mapping:
+
+- Decoration ideas → Decoration & Florals.
+- Food ideas → Catering & Food.
+- Venue ideas → Wedding Venues.
+- Photography ideas → Photography & Videography.
+- Entertainment ideas → Entertainment.
+
+Allow users to save selected vendors to My Vendors.
+
+## 16. Integration with Budget Planner
+
+When a user saves a vendor, allow them to enter:
+
+- Estimated expense.
+- Independently received quotation.
+- Actual expense, when known.
+
+Connect this information to the relevant budget category.
+
+Distinguish clearly between:
+
+- Community-reported historical price.
+- User-entered estimate.
+- Actual quotation received.
+- Actual expense.
+
+Update budget summaries and charts when user-specific amounts change.
+
+Never treat community-reported prices as confirmed quotations or actual expenses.
+
+---
+
+# PART D — SIMPLIFIED ADAPTIVE RE-PLANNING
+
+## 17. Simplify Existing Adaptive Re-Planning
+
+The current application contains multiple entry points:
+
+- Adaptive Re-plan in the header.
+- Adaptive Re-Planning sidebar card.
+- Launch Simulator button.
+- Separate Adaptive Re-Planning Engine.
+
+This makes the feature repetitive and confusing.
+
+Do not remove adaptive re-planning completely because it is an important capability of EventPilot AI.
+
+Instead, simplify the experience.
+
+### Remove
+
+- Permanent Adaptive Re-Planning sidebar card.
+- Duplicate simulator buttons.
+- Redundant simulator entry points.
+- Unnecessary oversized simulator interface.
+- Repeated Adaptive Re-Planning controls.
+
+### Keep One Entry Point
+
+Inside the individual event workspace, provide one action:
+
+**Re-plan Event**
+
+Place it in the workspace header or Overview page.
+
+Do not show multiple copies of this action.
+
+## 18. Re-plan Event Interface
+
+When the user clicks Re-plan Event, open a compact modal or drawer.
+
+Allow changes to:
+
+- Total Budget.
+- Expected Guest Count.
+- Event Date.
+
+Display current values as defaults.
+
+Provide a clear Simulate Changes action.
+
+## 19. Deterministic Impact Analysis
+
+Use frontend calculations to analyze changes.
+
+Consider their impact on:
+
+- Budget allocations.
+- Catering requirements.
+- Venue capacity considerations.
+- Guest-related arrangements.
+- Task deadlines.
+- Event timeline.
+- Estimated expenses.
+
+### Scenario A — Budget Decreased
+
+Original budget: ₹8,00,000.
+
+New budget: ₹7,00,000.
+
+Show:
+
+- Budget reduction of ₹1,00,000.
+- Affected budget categories.
+- Possible adjustments.
+- Alternative spending suggestions.
+
+### Scenario B — Guest Count Increased
+
+Original guests: 200.
+
+New guests: 250.
+
+Show possible effects on:
+
+- Catering quantities.
+- Seating arrangements.
+- Venue capacity considerations.
+- Additional expenses.
+- Related tasks.
+
+### Scenario C — Event Date Changed
+
+Original date: November 28.
+
+New date: November 14.
+
+Show:
+
+- Tasks with affected deadlines.
+- Tasks requiring earlier completion.
+- Updated timeline.
+- Dependencies that may need adjustment.
+
+### Impact Analysis UI
+
+Display these sections:
+
+1. Detected Changes.
+2. Affected Planning Areas.
+3. Suggested Adjustments.
+4. Updated Budget Breakdown.
+5. Tasks Requiring Deadline Changes.
+6. Potential Trade-offs.
+
+Clearly identify simulated recommendations.
+
+Never automatically change the user's plan.
+
+## 20. Apply and Save New Plan
+
+Provide two actions:
+
+- Cancel
+- Apply & Save New Plan
+
+When the user accepts:
+
+1. Save a new plan version.
+2. Update event details.
+3. Update relevant budget allocations.
+4. Recalculate affected task deadlines.
+5. Preserve the previous plan version.
+6. Show a success notification.
+
+When the user cancels, do not modify existing event data.
+
+Provide a simple Plan Version History to view previous versions and compare changes.
+
+Avoid complicated simulator workflows.
+
+---
+
+# PART E — AI CO-PILOT INTEGRATION
+
+## 21. Update AI Co-Pilot
+
+The existing AI Co-Pilot should support the improved event-management workflow.
+
+Implement mock interactions for:
+
+### Event Management
+
+User: "Show my upcoming events."
+
+AI: Display upcoming events belonging to the current user.
+
+User: "How much budget is remaining for my wedding?"
+
+AI: Calculate remaining budget using the selected event's data.
+
+### Vendor Recommendations
+
+User: "Suggest catering vendors for my wedding in Chennai."
+
+AI: Recommend relevant approved community records.
+
+User: "I couldn't find a suitable photographer."
+
+AI: Explain how to add a preferred vendor to the community database.
+
+### Adaptive Re-Planning
+
+User: "My budget decreased to ₹7,00,000."
+
+AI: Suggest opening Re-plan Event and explain the possible impact.
+
+User: "What happens if my guest count increases to 250?"
+
+AI: Explain the affected planning areas using the current event data.
+
+AI must:
+
+- Use existing application data.
+- Never fabricate vendors or contact details.
+- Never invent quotations or reviews.
+- Clearly identify estimated or simulated information.
+- Explain recommendation reasoning.
+- Allow the user to make final decisions.
+
+Use predefined mock responses and local data. No real AI API integration is required.
+
+---
+
+# PART F — DATA MODEL, ARCHITECTURE AND PERSISTENCE
+
+## 22. Event Data Isolation
+
+This is a critical architectural requirement.
+
+Every event must have a unique event ID.
+
+Associate the following data with the correct event:
+
+- Event information.
+- Budget allocations.
+- Tasks.
+- Guests.
+- Saved vendors.
+- Private vendor notes.
+- Personalized preferences.
+- Plan versions.
+
+Use event IDs to ensure that switching events loads the correct data.
+
+Deleting or modifying one event must never affect other events.
+
+Community vendor records must remain independent of individual event records.
+
+## 23. TypeScript Data Models
+
+Create suitable TypeScript interfaces.
+
+### Event
+
+- id
+- userId
+- name
+- type
+- date
+- location
+- description
+- budget
+- guestCount
+- theme
+- status
+- completionPercentage
+- createdAt
+- updatedAt
+
+### CommunityVendor
+
+- id
+- name
+- category
+- city
+- state
+- businessAddress
+- publicPhone
+- website
+- socialLinks
+- reportedPriceMin
+- reportedPriceMax
+- reportedQuotation
+- packageInclusions
+- additionalCharges
+- suitableEventTypes
+- contributorExperienceType
+- publicFeedback
+- submittedAt
+- updatedAt
+- moderationStatus
+- isDemoRecord
+
+### UserEventVendor
+
+- id
+- eventId
+- userId
+- vendorId
+- privateNotes
+- independentlyReceivedQuote
+- estimatedExpense
+- actualExpense
+- bookingStatus
+- savedAt
+
+### EventPlanVersion
+
+- id
+- eventId
+- versionNumber
+- budget
+- guestCount
+- eventDate
+- budgetAllocations
+- taskDeadlines
+- changesSummary
+- createdAt
+
+Ensure community vendor information and user-specific event information are stored separately.
+
+## 24. Frontend Architecture
+
+Continue using the existing project stack.
+
+If already installed, reuse:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- React Router
+- Zustand
+- React Hook Form
+- Zod
+- Recharts
+- Lucide React
+
+Suggested organization:
+
+src/
+  pages/
+    dashboard/
+      MyCelebrations.tsx
+
+    events/
+      EventWorkspace.tsx
+      CreateEventWizard.tsx
+
+    vendors/
+      RecommendedVendors.tsx
+      MyVendors.tsx
+
+  components/
+    dashboard/
+      EventCard.tsx
+      DashboardStats.tsx
+      EventFilters.tsx
+      EmptyEventsState.tsx
+      DeleteEventDialog.tsx
+      DuplicateEventDialog.tsx
+
+    vendors/
+      VendorCard.tsx
+      VendorDetailsModal.tsx
+      AddVendorForm.tsx
+      VendorSearchFilters.tsx
+      DuplicateVendorDialog.tsx
+      VendorComparison.tsx
+
+    adaptive/
+      ReplanEventModal.tsx
+      ReplanImpactAnalysis.tsx
+      PlanVersionHistory.tsx
+
+  services/
+    eventService.ts
+    vendorService.ts
+    vendorRecommendationService.ts
+    adaptiveReplanService.ts
+
+  store/
+    eventStore.ts
+    vendorStore.ts
+
+  data/
+    mockVendors.ts
+
+  types/
+    event.ts
+    vendor.ts
+
+Adapt this structure to the existing project.
+
+Do not create duplicate components or replace existing architecture unnecessarily.
+
+## 25. LocalStorage Persistence
+
+This phase is frontend-only.
+
+Use localStorage to persist:
+
+- User events.
+- Event creation and updates.
+- Event deletions.
+- Duplicated events.
+- Event-specific budgets.
+- Tasks and guests.
+- Community vendor contributions.
+- Vendor moderation statuses.
+- Saved vendors.
+- Private notes.
+- Booking statuses.
+- Plan versions.
+
+Use a service layer so the mock implementation can later be replaced with real backend APIs.
+
+Handle missing, empty or corrupted localStorage data gracefully.
+
+Seed realistic demonstration data across multiple vendor categories and event types.
+
+Clearly distinguish seeded demo records from actual customer contributions.
+
+---
+
+# PART G — DESIGN AND QUALITY REQUIREMENTS
+
+## 26. UI/UX Design
+
+Preserve the existing EventPilot AI visual identity.
+
+Design direction:
+
+- Modern SaaS dashboard.
+- Clean white and light-gray surfaces.
+- Purple accent color.
+- Professional typography.
+- Rounded cards.
+- Subtle shadows.
+- Consistent spacing.
+- Responsive grid layouts.
+- Lucide icons.
+- Clear visual hierarchy.
+
+Ensure:
+
+- Desktop responsiveness.
+- Tablet responsiveness.
+- Mobile responsiveness.
+- Loading states.
+- Empty states.
+- Error states.
+- Form validation.
+- Confirmation dialogs.
+- Toast notifications.
+- Accessible controls.
+- Consistent navigation.
+
+Avoid unnecessary visual complexity and duplicated interface elements.
+
+## 27. Important Restrictions
+
+DO NOT:
+
+- Build vendor registration or vendor login.
+- Build a vendor dashboard.
+- Connect vendors directly with customers.
+- Build internal vendor messaging.
+- Build quotation request workflows.
+- Build vendor booking integrations.
+- Build payment or commission functionality.
+- Claim live vendor availability.
+- Claim independent vendor verification.
+- Invent real-world vendor records, prices or reviews.
+- Automatically publish private customer information.
+- Remove adaptive re-planning entirely.
+- Create multiple adaptive simulator entry points.
+- Open an individual event workspace automatically after login.
+- Allow event deletion without confirmation.
+- Delete shared vendor records when deleting an event.
+- Break existing working application features.
+- Add unnecessary dependencies.
+- Implement backend APIs or real AI integrations in this phase.
+
+This application is a celebration planning platform with community-driven vendor recommendations, NOT a vendor marketplace.
+
+---
+
+# PART H — FINAL ACCEPTANCE CRITERIA
+
+## 28. User Dashboard and Event Management
+
+- After login, users land on My Celebrations.
+- All user-created events are displayed.
+- Dashboard statistics are dynamic.
+- Event search, filters and sorting work.
+- Users can create events through the three-step wizard.
+- Users can open individual event workspaces.
+- Users can edit events.
+- Users can duplicate events independently.
+- Users can delete events after confirmation.
+- Event-specific data is isolated.
+- Back to My Celebrations navigation works.
+
+## 29. Community Vendor Recommendations
+
+- Existing Vendors & Quotes functionality is replaced.
+- Customers can browse approved community vendors.
+- Vendor search and filters work.
+- Vendor details are accessible.
+- Customers can add preferred or previously visited vendors.
+- Contributions require consent.
+- Duplicate detection works.
+- New submissions enter Pending Review.
+- Only approved records appear in general recommendations.
+- Customers can save vendors to My Vendors.
+- Private notes remain private.
+- Booking status updates work.
+- Recommendations consider event type, location and budget.
+- Empty recommendation states provide an Add a Vendor action.
+- Personalized Ideas can navigate to related vendors.
+- Vendor-related expenses integrate with the Budget Planner.
+
+## 30. Adaptive Re-Planning
+
+- Duplicate simulator controls are removed.
+- One Re-plan Event action remains.
+- Budget changes are supported.
+- Guest count changes are supported.
+- Event date changes are supported.
+- Impact analysis identifies affected areas.
+- Suggested adjustments are understandable.
+- Users can cancel without changing their plans.
+- Users can apply changes and save new plan versions.
+- Previous plan versions remain accessible.
+
+## 31. Overall Quality
+
+- All interactive controls work.
+- All forms validate properly.
+- Data persists after refresh.
+- No unrelated functionality is broken.
+- Responsive layouts work across devices.
+- No fake vendor verification or live availability claims.
+- No unnecessary backend or API integrations.
+- No duplicated components or conflicting state logic.
+
+---
+
+# FINAL IMPLEMENTATION INSTRUCTIONS
+
+Before coding:
+
+1. Inspect the complete existing project.
+2. Understand its routing and current login flow.
+3. Inspect the existing event data model.
+4. Inspect existing state management and localStorage usage.
+5. Identify existing reusable components.
+6. Identify the current Vendors & Quotes implementation.
+7. Identify all existing Adaptive Re-Planning entry points.
+8. Understand the current Personalized Ideas and Budget integrations.
+
+Then implement all changes in an organized manner.
+
+Prioritize the following user journey:
+
+**Login → My Celebrations → Create or Select Event → Event Workspace → Plan Event → Discover Community Vendors → Manage Budget and Tasks → Re-plan When Requirements Change.**
+
+Preserve all unrelated working features.
+
+Test the important user flows and fix errors before considering the work complete.
+
+Do not stop after creating static UI screens. Implement functional interactions using mock data and localStorage.
+
+Do not generate documentation or README files.
+
+Do not perform Git commits or Git pushes.
+
+The final output must be a cohesive, polished, fully interactive EventPilot AI frontend that integrates all three enhancements into the existing application.
