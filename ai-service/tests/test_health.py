@@ -44,3 +44,4 @@ def test_settings_validation():
     # Test port validation constraints
     with pytest.raises(Exception):
         Settings(PORT=70000)  # Exceeds max 65535
+

@@ -166,3 +166,4 @@ Provides combined telemetry including service uptime, version, and database heal
 }
 ```
 *(Stack traces are omitted in production mode)*
+

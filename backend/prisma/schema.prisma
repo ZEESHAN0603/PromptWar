@@ -1,5 +1,5 @@
 // EventPilot AI - Prisma Schema
-// Database: Supabase PostgreSQL
+// Database: Supabase PostgreSQL (Exclusively)
 // Documentation: See DATABASE_DESIGN.md
 
 datasource db {
@@ -12,41 +12,38 @@ generator client {
   provider = "prisma-client-js"
 }
 
-/// User profile record linked directly to Supabase Auth user via UUID
-model UserProfile {
+/// Profile model linked directly to Supabase Auth user (auth.users.id)
+model Profile {
   id        String   @id // Supabase auth.users UUID
   email     String   @unique
   fullName  String?
   avatarUrl String?
-  role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   events Event[]
 
-  @@map("user_profiles")
+  @@map("profiles")
 }
 
 /// Event model representing celebrations & events created by users
 model Event {
-  id                  String   @id @default(uuid())
-  userId              String
-  name                String
-  category            String   @default("Wedding") // e.g. Wedding, Birthday, Corporate event, etc.
-  occasionDescription String?
-  date                DateTime
-  location            String
-  expectedGuests      Int      @default(0)
-  totalBudget         Decimal  @default(0.00) @db.Decimal(12, 2)
-  currency            String   @default("INR")
-  theme               String?
-  status              String   @default("planning") // planning, confirmed, in_progress, completed, archived
-  completionPercentage Int     @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  type        String   @default("Wedding") // e.g. Wedding, Birthday, Corporate event
+  date        DateTime
+  location    String
+  description String?
+  budget      Decimal  @default(0.00) @db.Decimal(12, 2)
+  guestCount  Int      @default(0)
+  theme       String?
+  status      String   @default("planning") // planning, confirmed, in_progress, completed, archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Ownership relation
-  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relationship to Profile (Supabase Auth user)
+  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])

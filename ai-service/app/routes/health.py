@@ -22,3 +22,4 @@ def get_health() -> HealthResponse:
         service=settings.SERVICE_NAME,
         version=settings.SERVICE_VERSION,
     )
+

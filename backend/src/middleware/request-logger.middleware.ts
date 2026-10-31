@@ -21,3 +21,4 @@ export const requestLogger = pinoHttp({
     return `${req.method} ${req.url} failed with status ${res.statusCode}: ${err.message}`;
   },
 });
+

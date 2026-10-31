@@ -45,3 +45,4 @@ process.on('uncaughtException', (error) => {
   logger.fatal({ error }, 'Uncaught Exception thrown');
   process.exit(1);
 });
+

@@ -8,7 +8,7 @@
 
 ## 1. Project Overview
 
-**EventPilot AI** is an intelligent, full-stack event and celebration planning platform. Whether organizing weddings, milestone anniversaries, birthday galas, corporate gatherings, or community festivals, EventPilot AI equips planners with intelligent tooling:
+**EventPilot AI** is an intelligent celebration and event planning platform. Whether organizing weddings, milestone anniversaries, birthday galas, corporate gatherings, or community festivals, EventPilot AI equips planners with intelligent tooling:
 
 - **AI Co-Pilot**: Conversational event guidance that answers budget, vendor, and checklist queries.
 - **Adaptive Re-Planning Engine**: Real-time simulation and optimization when guest counts or financial allocations change.
@@ -24,11 +24,11 @@
 - **Framework**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS v4, Lucide Icons
 - **State Management**: Zustand
-- **Animations & Visualizations**: Motion (Framer Motion), Recharts, Canvas Confetti
+- **Visualizations**: Recharts, Canvas Confetti, Motion
 
 ### Main Backend
 - **Runtime & Server**: Node.js (v18+) + Express.js + TypeScript
-- **Database**: Supabase PostgreSQL
+- **Database**: Supabase PostgreSQL (Exclusively)
 - **ORM & Migrations**: Prisma ORM
 - **Validation & Security**: Zod, Helmet, CORS, dotenv
 - **Structured Logging**: Pino, pino-http
@@ -38,11 +38,6 @@
 - **Runtime**: Python 3.11+
 - **Framework**: FastAPI, Pydantic v2, Uvicorn, HTTPX
 - **Testing**: pytest, pytest-asyncio, FastAPI TestClient
-
-### Infrastructure & Orchestration
-- **Containers**: Docker, Docker Compose
-- **Deployment Targets**: Render, Railway, Cloud Run compatible
-- **Version Control**: Git, GitHub
 
 ---
 
@@ -75,7 +70,7 @@ EventPilot-AI/
 │   ├── store/              # Zustand global application state store
 │   └── types/              # Domain TypeScript interfaces
 ├── backend/                # Node.js + Express + Prisma backend service
-│   ├── prisma/             # Database schema (UserProfile & Event models)
+│   ├── prisma/             # Database schema (Profile & Event models)
 │   ├── src/
 │   │   ├── config/         # Zod env validation, Prisma singleton, Pino logger
 │   │   ├── controllers/    # Route controllers (HealthController)
@@ -88,7 +83,7 @@ EventPilot-AI/
 │   ├── tests/              # Vitest + Supertest integration tests
 │   ├── docs/               # In-depth backend documentation
 │   ├── .env.example        # Backend environment template
-│   ├── Dockerfile          # Production multi-stage Docker container
+│   ├── .gitignore          # Backend git ignore rules
 │   ├── package.json        # Dependencies and scripts
 │   ├── tsconfig.json       # TypeScript configuration
 │   └── vitest.config.ts    # Vitest runner configuration
@@ -100,13 +95,11 @@ EventPilot-AI/
 │   ├── tests/              # Pytest test suite with TestClient
 │   ├── docs/               # AI service documentation
 │   ├── requirements.txt    # Pinned Python dependencies
-│   ├── .env.example        # Environment variable template
-│   └── Dockerfile          # Python production Docker container
+│   └── .env.example        # Environment variable template
 ├── docs/                   # Monorepo architecture & roadmap
 │   ├── PROJECT_ARCHITECTURE.md
 │   ├── BACKEND_ROADMAP.md
 │   └── DEVELOPMENT_WORKFLOW.md
-├── docker-compose.yml      # Local multi-service orchestration
 ├── .gitignore              # Repository git ignore rules
 └── README.md               # Root repository guide
 ```
@@ -115,23 +108,17 @@ EventPilot-AI/
 
 ## 5. Prerequisites
 
-Before running the project locally, ensure you have installed:
+Before running the project locally, ensure you have:
 - **Node.js**: `v18.0.0` or higher (`v22` recommended)
 - **npm**: `v9.0.0` or higher
 - **Python**: `3.11` or higher
-- **Docker & Docker Compose**: (Optional, for containerized workflows)
+- **Supabase Project**: An active Supabase PostgreSQL database project (no local PostgreSQL required)
 
 ---
 
 ## 6. Installation & Local Development
 
-### Step 1: Clone the Repository
-```bash
-git clone https://github.com/ZEESHAN0603/PromptWar.git
-cd PromptWar
-```
-
-### Step 2: Set Up the Frontend
+### Step 1: Set Up the Frontend
 ```bash
 # Install frontend dependencies
 npm install
@@ -140,7 +127,7 @@ npm install
 npm run dev
 ```
 
-### Step 3: Set Up the Node.js Backend
+### Step 2: Set Up the Node.js Backend
 ```bash
 cd backend
 
@@ -151,13 +138,14 @@ npm install
 cp .env.example .env
 
 # Validate Prisma schema and generate client
+npm run prisma:validate
 npm run prisma:generate
 
 # Start backend server on port 5000
 npm run dev
 ```
 
-### Step 4: Set Up the Python AI Service
+### Step 3: Set Up the Python AI Service
 ```bash
 cd ai-service
 
@@ -173,20 +161,26 @@ uvicorn app.main:app --reload --port 8000
 
 ---
 
-## 7. Running with Docker Compose
+## 7. Environment Configuration
 
-To start both the Node.js backend and Python AI microservice with a single command:
-```bash
-docker compose up --build
-```
-- Node.js Backend: [http://localhost:5000](http://localhost:5000)
-- Python AI Microservice: [http://localhost:8000](http://localhost:8000)
-- Interactive AI Docs (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
+### Backend (`backend/.env`)
+- `PORT`: Port on which Express server listens (default: `5000`).
+- `NODE_ENV`: Runtime environment (`development`, `production`, `test`).
+- `FRONTEND_URL`: Allowed CORS origin (default: `http://localhost:3000`).
+- `DATABASE_URL`: Supabase connection pooling URI (port `6543`).
+- `DIRECT_URL`: Supabase direct connection URI (port `5432`).
+- `SUPABASE_URL`: Supabase project URL.
+- `SUPABASE_ANON_KEY`: Supabase anon/public key.
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (backend only).
+- `JWT_SECRET`: Supabase JWT secret.
+- `AI_SERVICE_URL`: URL to internal Python microservice (default: `http://localhost:8000`).
 
-To stop services:
-```bash
-docker compose down
-```
+### AI Service (`ai-service/.env`)
+- `ENVIRONMENT`: `development` or `production`.
+- `PORT`: AI service port (default: `8000`).
+- `HOST`: Bind host (default: `0.0.0.0`).
+- `INTERNAL_API_SECRET`: Shared secret for backend-to-AI requests.
+- `BACKEND_INTERNAL_URL`: URL pointing to the Express backend.
 
 ---
 
@@ -197,18 +191,18 @@ docker compose down
 cd backend
 npm run test
 ```
-Runs 17 automated tests covering:
+Tests:
 - Health check endpoints (`/api/health`, `/api/health/db`, `/api/health/detailed`)
-- Zod environment parsing and security redaction
+- Zod environment parsing and secret masking
 - Operational vs. internal error handling shapes
-- Database connection degradation handling
+- Database connection failure and degradation handling
 
 ### Python AI Service Tests (pytest)
 ```bash
 cd ai-service
 python -m pytest tests/ -v
 ```
-Runs test cases verifying application initialization, health responses, 404 routing, and Pydantic configuration validation.
+Tests application initialization, `/health` response structure, 404 routing, and configuration constraints.
 
 ### Frontend Quality Check
 ```bash
@@ -218,7 +212,15 @@ npm run build
 
 ---
 
-## 9. Current Implementation Status & Roadmap
+## 9. Troubleshooting
+
+- **Prisma Error P1012**: Ensure `DATABASE_URL` and `DIRECT_URL` are set in `backend/.env`.
+- **Database 503 on `/api/health/db`**: Verify Supabase connection string and project status.
+- **Port Conflict**: Modify `PORT` in `backend/.env` or `ai-service/.env`.
+
+---
+
+## 10. Current Implementation Status & Roadmap
 
 | Phase | Description | Status |
 |---|---|---|
@@ -231,16 +233,3 @@ npm run build
 | Phase 7 | AI Co-Pilot (Interactive Assistance) | ⏳ Planned |
 
 For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMAP.md`](docs/BACKEND_ROADMAP.md).
-
----
-
-## 10. Git Commands
-
-Use selective staging when collaborating or contributing:
-
-```bash
-git status
-git add backend/ ai-service/ docs/ docker-compose.yml .gitignore README.md
-git commit -m "feat(backend): initialize EventPilot AI backend foundation"
-git push origin <branch-name>
-```

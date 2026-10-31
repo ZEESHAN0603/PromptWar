@@ -22,3 +22,4 @@ This document details all environment variables used by the Express TypeScript b
 1. **Never commit `.env`**: Always ensure `.env` is listed in `.gitignore`. Only commit `.env.example`.
 2. **Never expose the Service Role Key**: The Supabase Service Role Key bypasses Row Level Security (RLS). It should only be accessed by trusted backend services, never transmitted to the browser or frontend client.
 3. **Log Redaction**: The backend's Pino logger masks headers containing `authorization`, `cookie`, `password`, `token`, and `secret`.
+

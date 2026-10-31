@@ -2,15 +2,14 @@
 
 ## 1. Monorepo Organization
 
-The EventPilot AI repository consists of three distinct service layers:
+The EventPilot AI repository consists of three specialized services:
 
 ```
 EventPilot-AI/
-├── src/                # React 19 Frontend application
+├── src/                # React 19 Frontend application (Vite + Tailwind v4)
 ├── backend/            # Node.js + Express + TypeScript Backend
 ├── ai-service/         # Python 3.11+ FastAPI Microservice
 ├── docs/               # System architecture and roadmap documentation
-├── docker-compose.yml  # Local multi-container orchestration
 └── README.md           # Project onboarding guide
 ```
 
@@ -33,14 +32,11 @@ cd ai-service
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Alternatively, using Docker Compose:
-```bash
-docker compose up
-```
-
 ---
 
 ## 3. Database Workflows (Prisma & Supabase)
+
+All database operations interact directly and exclusively with Supabase PostgreSQL:
 
 - **Validating Schema Changes**:
   ```bash
@@ -57,19 +53,18 @@ docker compose up
   cd backend
   npm run prisma:generate
   ```
-- **Applying Migrations in Development**:
+- **Prisma Migrations**:
   ```bash
-  # Ensure DIRECT_URL is configured in backend/.env before creating migrations
   npx prisma migrate dev --name <migration_name>
   ```
   > [!WARNING]
-  > Never use destructive migration flags (`migrate reset` or `--force`) in shared staging or production environments.
+  > Never run destructive migration flags (`migrate reset` or `--force`) against production or shared database environments.
 
 ---
 
 ## 4. Code Quality & Pre-Commit Verification
 
-Before submitting pull requests or pushing commits, run all verification steps:
+Verify all components before merging or proposing changes:
 
 ```bash
 # 1. Frontend Typecheck and Build
@@ -86,13 +81,3 @@ npm run build
 cd ../ai-service
 python -m pytest tests/ -v
 ```
-
----
-
-## 5. Git Commit Conventions
-
-Follow the Conventional Commits specification:
-- `feat(backend): add health telemetry endpoint`
-- `fix(ai-service): resolve pydantic settings validation`
-- `docs: update system architecture diagrams`
-- `test(backend): add database degradation mock tests`

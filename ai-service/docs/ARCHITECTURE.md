@@ -53,3 +53,4 @@ ai-service/
 - **Phase 5 (Personalized Ideas AI)**: Structured prompt generation for theme, decor, food, and entertainment recommendations based on culture, guest breakdown, and budget constraints.
 - **Phase 6 (Adaptive Re-Planning Engine)**: Multi-constraint rebalancing algorithm to adjust budget allocations, guest counts, and task priorities upon event date or scale changes.
 - **Phase 7 (AI Co-Pilot)**: Real-time interactive assistance, streaming chat responses, and contextual event modifications.
+

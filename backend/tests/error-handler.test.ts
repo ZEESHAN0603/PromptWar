@@ -98,3 +98,4 @@ describe('Error Handler Middleware', () => {
     expect(response.body.message).toContain('Route not found');
   });
 });
+

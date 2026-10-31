@@ -34,3 +34,4 @@ describe('Database Configuration & Health', () => {
     await expect(disconnectDatabase()).resolves.not.toThrow();
   });
 });
+

@@ -28,18 +28,17 @@ flowchart LR
 - [x] Pino and pino-http structured JSON logging with header redaction.
 - [x] Standardized API response (`ApiResponse`) and error handling (`ApiError`, `errorHandler`).
 - [x] Complete health check API (`GET /api/health`, `/api/health/db`, `/api/health/detailed`).
-- [x] Supabase PostgreSQL connectivity setup with Prisma ORM (`UserProfile` & `Event` models).
+- [x] Supabase PostgreSQL connectivity setup with Prisma ORM (`Profile` & `Event` models).
 - [x] Python 3.11+ FastAPI AI service foundation (`GET /health`) with Pydantic v2 settings.
 - [x] Automated test suites in Vitest (Node.js) and Pytest (Python).
-- [x] Dockerfile & Docker Compose multi-service configurations.
-- [x] Comprehensive documentation set and GitHub version control integration.
+- [x] Comprehensive technical documentation across root and backend directories.
 
 ---
 
 ### ⏳ Phase 2: Authentication & Event Management
 **Status**: **PLANNED (Next Phase)**
 - [ ] Supabase Auth JWT verification middleware on Express routes (`auth.middleware.ts`).
-- [ ] User profile synchronization hook (`user_profiles`).
+- [ ] User profile synchronization hook (`profiles`).
 - [ ] Event CRUD APIs (`POST /api/events`, `GET /api/events`, `GET /api/events/:id`, `PATCH /api/events/:id`, `DELETE /api/events/:id`).
 - [ ] Event ownership authorization policies and Supabase Row Level Security (RLS).
 - [ ] Event duplication and archival workflows.

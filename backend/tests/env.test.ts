@@ -71,3 +71,4 @@ describe('Environment Configuration Validation', () => {
     expect(sanitized.NODE_ENV).toBe('development');
   });
 });
+

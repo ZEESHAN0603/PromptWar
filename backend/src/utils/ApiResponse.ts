@@ -35,3 +35,4 @@ export class ApiResponse {
     return ApiResponse.success(res, data, message, 201);
   }
 }
+

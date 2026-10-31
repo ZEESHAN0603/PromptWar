@@ -6,3 +6,4 @@ export const healthRouter = Router();
 healthRouter.get('/', HealthController.getHealth);
 healthRouter.get('/db', HealthController.getDatabaseHealth);
 healthRouter.get('/detailed', HealthController.getDetailedHealth);
+

@@ -62,3 +62,4 @@ python -m pytest tests/ -v
 - **Health Contract**: Confirms `GET /health` returns `{ status: "healthy", service: "eventpilot-ai-service", version: "1.0.0" }`.
 - **Configuration Constraints**: Asserts port out-of-range (> 65535) is rejected by Pydantic validation.
 - **404 Routing**: Verifies undefined routes are caught gracefully.
+

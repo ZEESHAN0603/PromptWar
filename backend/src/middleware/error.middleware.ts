@@ -67,3 +67,4 @@ export function errorHandler(
     ...(isProduction ? {} : { stack: err.stack }),
   });
 }
+

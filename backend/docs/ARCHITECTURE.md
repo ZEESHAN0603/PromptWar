@@ -27,3 +27,4 @@ flowchart TD
 3. **Unified API Contract**: Every endpoint responds with standard payload formats (`ApiResponse` and `ApiError`), ensuring frontend predictability.
 4. **Resilient Database Layer**: Database health is verified using lightweight non-blocking queries and connection pooling. The API never reports healthy if the database connection fails.
 5. **Security by Default**: Helmet secures HTTP headers, CORS is strictly enforced for approved origins, body parser limits protect against DOS attacks, and sensitive data paths are masked in structured Pino logs.
+
