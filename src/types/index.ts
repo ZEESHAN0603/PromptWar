@@ -300,3 +300,72 @@ export interface AdaptiveImpactReport {
   recommendedAlternatives: string[];
   unchangedSummary: string[];
 }
+
+export interface ExpenseItem {
+  id: string;
+  eventId: string;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  categoryColor?: string | null;
+  title: string;
+  description?: string | null;
+  estimatedAmount: number;
+  actualAmount?: number | null;
+  expenseDate?: string | null;
+  paymentStatus: 'pending' | 'partially_paid' | 'paid';
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BudgetSummaryData {
+  eventId: string;
+  currency: string;
+  totalBudget: number;
+  totalAllocated: number;
+  totalEstimatedExpenses: number;
+  totalActualExpenses: number;
+  remainingBudget: number;
+  budgetUtilization: number;
+  categoryBreakdown: Array<{
+    id: string;
+    name: string;
+    color?: string | null;
+    allocatedAmount: number;
+    estimatedExpenses: number;
+    actualExpenses: number;
+    variance: number;
+    isOverspent: boolean;
+    expenseCount: number;
+  }>;
+  uncategorizedExpensesCount: number;
+  warnings: string[];
+}
+
+export interface GuestSummaryData {
+  eventId: string;
+  totalGuests: number;
+  attendingCount: number;
+  declinedCount: number;
+  pendingCount: number;
+  invitedCount: number;
+  totalPermittedPlusOnes: number;
+  expectedAttendeesHeadcount: number;
+  categoryBreakdown: Record<string, number>;
+  dietaryBreakdown: Record<string, number>;
+}
+
+export interface TimelineActivityItem {
+  id: string;
+  eventId: string;
+  title: string;
+  description?: string | null;
+  startTime: string;
+  endTime?: string | null;
+  location?: string | null;
+  category?: string | null;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

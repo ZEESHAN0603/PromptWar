@@ -15,6 +15,10 @@ import {
   BookingStatus,
   CommunityVendor,
   UserEventVendor,
+  ExpenseItem,
+  BudgetSummaryData,
+  GuestSummaryData,
+  TimelineActivityItem,
 } from '../types';
 import {
   INITIAL_WEDDING_EVENT,
@@ -30,7 +34,7 @@ import {
 } from '../services/mockData';
 import { calculateCompletion } from '../utils/formatters';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
-import { apiClient, setApiAccessToken } from '../services/apiClient';
+import { apiClient, setApiAccessToken, getApiAccessToken } from '../services/apiClient';
 
 interface UserProfile {
   name: string;
@@ -77,9 +81,9 @@ interface AppStoreState {
 
   // Budget Slice
   budgets: Record<string, BudgetCategoryItem[]>; // Keyed by eventId
-  addBudgetCategory: (eventId: string, category: Omit<BudgetCategoryItem, 'id'>) => void;
-  updateBudgetCategory: (eventId: string, id: string, updates: Partial<BudgetCategoryItem>) => void;
-  deleteBudgetCategory: (eventId: string, id: string) => void;
+  addBudgetCategory: (eventId: string, category: Omit<BudgetCategoryItem, 'id'>) => Promise<any>;
+  updateBudgetCategory: (eventId: string, id: string, updates: Partial<BudgetCategoryItem>) => Promise<void>;
+  deleteBudgetCategory: (eventId: string, id: string) => Promise<void>;
   setBudgetCategories: (eventId: string, categories: BudgetCategoryItem[]) => void;
 
   // Tasks / Timeline Slice
@@ -131,11 +135,36 @@ interface AppStoreState {
     version: Omit<PlanVersion, 'id' | 'eventId' | 'timestamp' | 'versionNumber'>
   ) => void;
 
+  // Planning Sync & Phase 3 Slices
+  planningLoading: boolean;
+  planningError: string | null;
+  fetchEventPlanningData: (eventId: string) => Promise<void>;
+
+  // Expenses & Budget Summaries (Phase 3)
+  expenses: Record<string, ExpenseItem[]>; // Keyed by eventId
+  budgetSummaries: Record<string, BudgetSummaryData>; // Keyed by eventId
+  addExpense: (eventId: string, expense: Omit<ExpenseItem, 'id' | 'eventId'>) => Promise<void>;
+  updateExpense: (eventId: string, id: string, updates: Partial<ExpenseItem>) => Promise<void>;
+  deleteExpense: (eventId: string, id: string) => Promise<void>;
+
+  // Guest Summary (Phase 3)
+  guestSummaries: Record<string, GuestSummaryData>; // Keyed by eventId
+
+  // Timeline Activities (Phase 3)
+  timelineItems: Record<string, TimelineActivityItem[]>; // Keyed by eventId
+  addTimelineItem: (eventId: string, item: Omit<TimelineActivityItem, 'id' | 'eventId'>) => Promise<void>;
+  updateTimelineItem: (eventId: string, id: string, updates: Partial<TimelineActivityItem>) => Promise<void>;
+  deleteTimelineItem: (eventId: string, id: string) => Promise<void>;
+
   // Helper getters
   getCurrentEvent: () => EventModel | undefined;
   getCurrentBudgets: () => BudgetCategoryItem[];
+  getCurrentExpenses: () => ExpenseItem[];
+  getCurrentBudgetSummary: () => BudgetSummaryData | undefined;
   getCurrentTasks: () => TaskItem[];
   getCurrentGuests: () => GuestItem[];
+  getCurrentGuestSummary: () => GuestSummaryData | undefined;
+  getCurrentTimeline: () => TimelineActivityItem[];
   getCurrentVendors: () => VendorItem[];
   getCurrentUserEventVendors: (eventId?: string) => UserEventVendor[];
   getCommunityVendors: () => CommunityVendor[];
@@ -177,8 +206,12 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         events: state.events,
         currentEventId: state.currentEventId,
         budgets: state.budgets,
+        expenses: state.expenses,
+        budgetSummaries: state.budgetSummaries,
         tasks: state.tasks,
         guests: state.guests,
+        guestSummaries: state.guestSummaries,
+        timelineItems: state.timelineItems,
         vendors: state.vendors,
         communityVendors: state.communityVendors,
         userEventVendors: state.userEventVendors,
@@ -414,11 +447,16 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       try {
         const data = await apiClient.getEvents(params);
         if (data && Array.isArray(data.events)) {
-          set((s) => ({
-            events: data.events,
-            currentEventId: data.events[0]?.id || s.currentEventId,
-          }));
+          const eventsList = data.events.length > 0 ? data.events : [INITIAL_WEDDING_EVENT];
+          const nextEventId = data.events[0]?.id || 'evt-wedding-01';
+          set({
+            events: eventsList,
+            currentEventId: nextEventId,
+          });
           persistState();
+          if (data.events[0]?.id) {
+            get().fetchEventPlanningData(data.events[0].id);
+          }
         }
       } catch (err: any) {
         console.warn('fetchUserEvents API call:', err);
@@ -431,6 +469,122 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     selectEvent: (id: string) => {
       set({ currentEventId: id });
       persistState();
+      get().fetchEventPlanningData(id);
+    },
+
+    // Planning Data Fetching (Phase 3)
+    planningLoading: false,
+    planningError: null,
+
+    fetchEventPlanningData: async (eventId: string) => {
+      if (!eventId) return;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) {
+        set({ planningLoading: false, planningError: null });
+        return;
+      }
+
+      const token = await getApiAccessToken();
+      if (!token) {
+        set({ planningLoading: false, planningError: null });
+        return;
+      }
+
+      set({ planningLoading: true, planningError: null });
+      try {
+        const [categories, expensesData, summary, guestsData, guestSummary, tasksData, timelineData] =
+          await Promise.allSettled([
+            apiClient.getBudgetCategories(eventId),
+            apiClient.getExpenses(eventId),
+            apiClient.getBudgetSummary(eventId),
+            apiClient.getGuests(eventId),
+            apiClient.getGuestSummary(eventId),
+            apiClient.getTasks(eventId),
+            apiClient.getTimeline(eventId),
+          ]);
+
+        set((s) => {
+          const nextBudgets = { ...s.budgets };
+          if (categories.status === 'fulfilled' && Array.isArray(categories.value)) {
+            nextBudgets[eventId] = categories.value.map((c) => ({
+              id: c.id,
+              name: c.name,
+              allocated: c.allocatedAmount,
+              actual: c.actualSpent || 0,
+              notes: c.description || '',
+              color: c.color || undefined,
+            }));
+          }
+
+          const nextExpenses = { ...s.expenses };
+          if (expensesData.status === 'fulfilled' && expensesData.value?.expenses) {
+            nextExpenses[eventId] = expensesData.value.expenses;
+          }
+
+          const nextBudgetSummaries = { ...s.budgetSummaries };
+          if (summary.status === 'fulfilled' && summary.value) {
+            nextBudgetSummaries[eventId] = summary.value;
+          }
+
+          const nextGuests = { ...s.guests };
+          if (guestsData.status === 'fulfilled' && guestsData.value?.guests) {
+            nextGuests[eventId] = guestsData.value.guests.map((g) => ({
+              id: g.id,
+              eventId: g.eventId,
+              name: g.fullName,
+              contact: g.email || g.phoneNumber || '',
+              category: (g.guestCategory?.toLowerCase() as any) || 'other',
+              accompanyingGuests: g.plusOneCount,
+              rsvpStatus: (g.rsvpStatus === 'attending' ? 'confirmed' : g.rsvpStatus) as any,
+              dietaryPreference: g.dietaryPreference || 'Standard',
+              specialNeeds: '',
+              notes: g.notes || '',
+            }));
+          }
+
+          const nextGuestSummaries = { ...s.guestSummaries };
+          if (guestSummary.status === 'fulfilled' && guestSummary.value) {
+            nextGuestSummaries[eventId] = guestSummary.value;
+          }
+
+          const nextTasks = { ...s.tasks };
+          if (tasksData.status === 'fulfilled' && tasksData.value?.tasks) {
+            nextTasks[eventId] = tasksData.value.tasks.map((t) => ({
+              id: t.id,
+              eventId: t.eventId,
+              title: t.title,
+              description: t.description || '',
+              category: 'General',
+              dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
+              priority: (t.priority === 'urgent' ? 'critical' : t.priority) as any,
+              status: (t.status === 'todo' ? 'pending' : t.status) as any,
+              dependencies: (t.dependencies || []).map((d) => d.taskId),
+              assignedTo: t.assignedTo || undefined,
+            }));
+          }
+
+          const nextTimeline = { ...s.timelineItems };
+          if (timelineData.status === 'fulfilled' && Array.isArray(timelineData.value)) {
+            nextTimeline[eventId] = timelineData.value;
+          }
+
+          return {
+            budgets: nextBudgets,
+            expenses: nextExpenses,
+            budgetSummaries: nextBudgetSummaries,
+            guests: nextGuests,
+            guestSummaries: nextGuestSummaries,
+            tasks: nextTasks,
+            timelineItems: nextTimeline,
+          };
+        });
+        persistState();
+      } catch (err: any) {
+        console.warn('fetchEventPlanningData error:', err);
+        set({ planningError: err.message });
+      } finally {
+        set({ planningLoading: false });
+      }
     },
     createEvent: (eventData) => {
       const newId = `evt-${Date.now()}`;
@@ -601,22 +755,109 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     createEventAsync: async (eventData) => {
-      const localId = get().createEvent(eventData);
       try {
         const created = await apiClient.createEvent(eventData);
         if (created && created.id) {
+          const now = new Date().toISOString();
+          const newEvent: EventModel = {
+            ...eventData,
+            id: created.id,
+            createdAt: created.createdAt || now,
+            updatedAt: created.updatedAt || now,
+            completionPercentage: 0,
+          };
+
           set((s) => ({
-            events: s.events.map((e) => (e.id === localId ? { ...e, ...created } : e)),
-            currentEventId: s.currentEventId === localId ? created.id : s.currentEventId,
-            budgets: { ...s.budgets, [created.id]: s.budgets[localId] || [] },
-            tasks: { ...s.tasks, [created.id]: s.tasks[localId] || [] },
+            events: [newEvent, ...s.events.filter((e) => e.id !== created.id && e.id !== 'evt-wedding-01')],
+            currentEventId: created.id,
+            budgets: { ...s.budgets, [created.id]: [] },
+            tasks: { ...s.tasks, [created.id]: [] },
+            guests: { ...s.guests, [created.id]: [] },
+            vendors: { ...s.vendors, [created.id]: [] },
+            ideas: { ...s.ideas, [created.id]: [] },
           }));
           persistState();
+
+          // Persist baseline budget categories to Supabase PostgreSQL so they receive real database UUIDs
+          const baselineCats = [
+            {
+              name: 'Venue & Staging',
+              allocatedAmount: Math.round(eventData.totalBudget * 0.4),
+              description: 'Ceremony & reception hall rental, lighting, and stage rigging.',
+              color: '#4F46E5',
+            },
+            {
+              name: 'Catering & Banquet',
+              allocatedAmount: Math.round(eventData.totalBudget * 0.3),
+              description: 'Buffet meals, welcome mocktails, live culinary counters, desserts.',
+              color: '#10B981',
+            },
+            {
+              name: 'Photography & Media',
+              allocatedAmount: Math.round(eventData.totalBudget * 0.15),
+              description: 'Candid photographer, cinematic videographer, and drone coverage.',
+              color: '#F59E0B',
+            },
+            {
+              name: 'Contingency & Buffer',
+              allocatedAmount: Math.round(eventData.totalBudget * 0.15),
+              description: 'Reserve buffer for unforeseen changes.',
+              color: '#64748B',
+            },
+          ];
+
+          for (const cat of baselineCats) {
+            try {
+              await apiClient.createBudgetCategory(created.id, cat);
+            } catch (e) {
+              console.warn('Initial category creation warning:', e);
+            }
+          }
+
+          // Persist baseline tasks to Supabase PostgreSQL
+          const baselineTasks = [
+            {
+              title: `Reserve ${newEvent.category} Venue`,
+              description: 'Tour shortlist venues and secure contract with advance payment.',
+              dueDate: newEvent.date,
+              priority: 'urgent' as const,
+              status: 'todo' as const,
+            },
+            {
+              title: 'Finalize Guest List & Send Invitations',
+              description: `Compile addresses for ${newEvent.expectedGuests} expected guests.`,
+              dueDate: newEvent.date,
+              priority: 'high' as const,
+              status: 'todo' as const,
+            },
+            {
+              title: 'Book Catering & Tasting Session',
+              description: 'Taste food selections and confirm menu dietary options.',
+              dueDate: newEvent.date,
+              priority: 'urgent' as const,
+              status: 'todo' as const,
+            },
+          ];
+
+          for (const task of baselineTasks) {
+            try {
+              await apiClient.createTask(created.id, task);
+            } catch (e) {
+              console.warn('Initial task creation warning:', e);
+            }
+          }
+
+          // Fetch all persisted planning data with real database UUIDs
+          await get().fetchEventPlanningData(created.id);
           return created.id;
         }
-      } catch (err) {
-        console.warn('createEventAsync backend sync:', err);
+      } catch (err: any) {
+        console.warn('createEventAsync backend error:', err);
+        set({ eventsError: err.message || 'Failed to create event in database' });
       }
+
+      // Fallback to local creation if offline or unauthenticated
+      const localId = get().createEvent(eventData);
       return localId;
     },
 
@@ -769,36 +1010,101 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
     // Budget Slice
     budgets: persisted?.budgets || { 'evt-wedding-01': INITIAL_BUDGET_CATEGORIES },
-    addBudgetCategory: (eventId, category) => {
+    addBudgetCategory: async (eventId, category) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      const tempId = `b-${Date.now()}`;
       const newCategory: BudgetCategoryItem = {
         ...category,
-        id: `b-${Date.now()}`,
+        id: tempId,
       };
       set((s) => ({
         budgets: {
           ...s.budgets,
           [eventId]: [...(s.budgets[eventId] || []), newCategory],
         },
+        planningError: null,
       }));
       persistState();
+      if (!isUuid) {
+        return { id: tempId, eventId, name: category.name, allocatedAmount: category.allocated };
+      }
+
+      try {
+        const res = await apiClient.createBudgetCategory(eventId, {
+          name: category.name,
+          allocatedAmount: category.allocated,
+          description: category.notes || null,
+        });
+        if (res?.id) {
+          set((s) => ({
+            budgets: {
+              ...s.budgets,
+              [eventId]: (s.budgets[eventId] || []).map((b) =>
+                b.id === tempId ? { ...b, id: res.id } : b
+              ),
+            },
+          }));
+        }
+        await get().fetchEventPlanningData(eventId);
+        return res;
+      } catch (err: any) {
+        console.warn('Backend createBudgetCategory sync:', err);
+        // Rollback temporary category on failure
+        set((s) => ({
+          budgets: {
+            ...s.budgets,
+            [eventId]: (s.budgets[eventId] || []).filter((b) => b.id !== tempId),
+          },
+          planningError: err.message || 'Failed to save category to database',
+        }));
+        throw err;
+      }
     },
-    updateBudgetCategory: (eventId, id, updates) => {
+    updateBudgetCategory: async (eventId, id, updates) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
       set((s) => ({
         budgets: {
           ...s.budgets,
           [eventId]: (s.budgets[eventId] || []).map((b) => (b.id === id ? { ...b, ...updates } : b)),
         },
+        planningError: null,
       }));
       persistState();
+      if (!isUuid) return;
+
+      try {
+        await apiClient.updateBudgetCategory(eventId, id, {
+          ...(updates.name && { name: updates.name }),
+          ...(updates.allocated !== undefined && { allocatedAmount: updates.allocated }),
+          ...(updates.notes !== undefined && { description: updates.notes }),
+        });
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend updateBudgetCategory sync:', err);
+        set({ planningError: err.message || 'Failed to update category in database' });
+        throw err;
+      }
     },
-    deleteBudgetCategory: (eventId, id) => {
+    deleteBudgetCategory: async (eventId, id) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
       set((s) => ({
         budgets: {
           ...s.budgets,
           [eventId]: (s.budgets[eventId] || []).filter((b) => b.id !== id),
         },
+        planningError: null,
       }));
       persistState();
+      if (!isUuid) return;
+
+      try {
+        await apiClient.deleteBudgetCategory(eventId, id);
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend deleteBudgetCategory sync:', err);
+        set({ planningError: err.message || 'Failed to delete category from database' });
+        throw err;
+      }
     },
     setBudgetCategories: (eventId, categories) => {
       set((s) => ({
@@ -810,12 +1116,98 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       persistState();
     },
 
+    // Expenses Slice (Phase 3)
+    expenses: persisted?.expenses || {},
+    budgetSummaries: persisted?.budgetSummaries || {},
+    addExpense: async (eventId, expenseData) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      const tempId = `exp-${Date.now()}`;
+      const newExp: ExpenseItem = {
+        ...expenseData,
+        id: tempId,
+        eventId,
+        createdAt: new Date().toISOString(),
+      };
+      set((s) => ({
+        expenses: {
+          ...s.expenses,
+          [eventId]: [newExp, ...(s.expenses[eventId] || [])],
+        },
+        planningError: null,
+      }));
+      persistState();
+      if (!isUuid) return;
+
+      try {
+        const res = await apiClient.createExpense(eventId, {
+          ...expenseData,
+          categoryId: expenseData.categoryId || null,
+          notes: expenseData.notes || null,
+          description: expenseData.description || null,
+        });
+        if (res?.id) {
+          set((s) => ({
+            expenses: {
+              ...s.expenses,
+              [eventId]: (s.expenses[eventId] || []).map((e) =>
+                e.id === tempId ? { ...e, id: res.id } : e
+              ),
+            },
+          }));
+        }
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend addExpense sync:', err);
+        set({ planningError: err.message || 'Failed to save expense to database' });
+      }
+    },
+    updateExpense: async (eventId, id, updates) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      set((s) => ({
+        expenses: {
+          ...s.expenses,
+          [eventId]: (s.expenses[eventId] || []).map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        },
+        planningError: null,
+      }));
+      persistState();
+      if (!isUuid) return;
+
+      try {
+        await apiClient.updateExpense(eventId, id, updates);
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend updateExpense sync:', err);
+        set({ planningError: err.message || 'Failed to update expense in database' });
+      }
+    },
+    deleteExpense: async (eventId, id) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      set((s) => ({
+        expenses: {
+          ...s.expenses,
+          [eventId]: (s.expenses[eventId] || []).filter((e) => e.id !== id),
+        },
+        planningError: null,
+      }));
+      persistState();
+      if (!isUuid) return;
+      try {
+        await apiClient.deleteExpense(eventId, id);
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend deleteExpense sync:', err);
+        set({ planningError: err.message || 'Failed to delete expense from database' });
+      }
+    },
+
     // Tasks Slice
     tasks: persisted?.tasks || { 'evt-wedding-01': INITIAL_TASKS },
     addTask: (eventId, task) => {
+      const tempId = `tsk-${Date.now()}`;
       const newTask: TaskItem = {
         ...task,
-        id: `tsk-${Date.now()}`,
+        id: tempId,
         eventId,
       };
       set((s) => {
@@ -827,9 +1219,36 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         return {
           tasks: { ...s.tasks, [eventId]: nextTasks },
           events: updatedEvents,
+          planningError: null,
         };
       });
       persistState();
+      apiClient
+        .createTask(eventId, {
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate || null,
+          priority: task.priority === 'critical' ? 'urgent' : (task.priority as any),
+          status: task.status === 'pending' ? 'todo' : (task.status as any),
+          assignedTo: task.assignedTo || null,
+        })
+        .then((res) => {
+          if (res?.id) {
+            set((s) => ({
+              tasks: {
+                ...s.tasks,
+                [eventId]: (s.tasks[eventId] || []).map((t) =>
+                  t.id === tempId ? { ...t, id: res.id } : t
+                ),
+              },
+            }));
+          }
+          return get().fetchEventPlanningData(eventId);
+        })
+        .catch((err) => {
+          console.warn('Backend createTask sync:', err);
+          set({ planningError: err.message || 'Failed to save task to database' });
+        });
     },
     updateTask: (eventId, id, updates) => {
       set((s) => {
@@ -841,9 +1260,24 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         return {
           tasks: { ...s.tasks, [eventId]: nextTasks },
           events: updatedEvents,
+          planningError: null,
         };
       });
       persistState();
+      apiClient
+        .updateTask(eventId, id, {
+          ...(updates.title && { title: updates.title }),
+          ...(updates.description !== undefined && { description: updates.description }),
+          ...(updates.dueDate !== undefined && { dueDate: updates.dueDate }),
+          ...(updates.priority && { priority: updates.priority === 'critical' ? 'urgent' : (updates.priority as any) }),
+          ...(updates.status && { status: updates.status === 'pending' ? 'todo' : (updates.status as any) }),
+          ...(updates.assignedTo !== undefined && { assignedTo: updates.assignedTo }),
+        })
+        .then(() => get().fetchEventPlanningData(eventId))
+        .catch((err) => {
+          console.warn('Backend updateTask sync:', err);
+          set({ planningError: err.message || 'Failed to update task in database' });
+        });
     },
     deleteTask: (eventId, id) => {
       set((s) => {
@@ -855,15 +1289,26 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         return {
           tasks: { ...s.tasks, [eventId]: nextTasks },
           events: updatedEvents,
+          planningError: null,
         };
       });
       persistState();
+      apiClient
+        .deleteTask(eventId, id)
+        .then(() => get().fetchEventPlanningData(eventId))
+        .catch((err) => {
+          console.warn('Backend deleteTask sync:', err);
+          set({ planningError: err.message || 'Failed to delete task from database' });
+        });
     },
     toggleTaskComplete: (eventId, id) => {
-      set((s) => {
-        const nextTasks = (s.tasks[eventId] || []).map((t) => {
+      const s = get();
+      const currentTask = (s.tasks[eventId] || []).find((t) => t.id === id);
+      const nextStatus: TaskStatus = currentTask?.status === 'completed' ? 'in_progress' : 'completed';
+
+      set((state) => {
+        const nextTasks = (state.tasks[eventId] || []).map((t) => {
           if (t.id === id) {
-            const nextStatus: TaskStatus = t.status === 'completed' ? 'in_progress' : 'completed';
             return {
               ...t,
               status: nextStatus,
@@ -873,15 +1318,26 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           return t;
         });
         const completion = calculateCompletion(nextTasks);
-        const updatedEvents = s.events.map((e) =>
+        const updatedEvents = state.events.map((e) =>
           e.id === eventId ? { ...e, completionPercentage: completion } : e
         );
         return {
-          tasks: { ...s.tasks, [eventId]: nextTasks },
+          tasks: { ...state.tasks, [eventId]: nextTasks },
           events: updatedEvents,
+          planningError: null,
         };
       });
       persistState();
+      apiClient
+        .updateTask(eventId, id, {
+          status: nextStatus === 'completed' ? 'completed' : 'in_progress',
+          overrideIncompletePrerequisites: true,
+        })
+        .then(() => get().fetchEventPlanningData(eventId))
+        .catch((err) => {
+          console.warn('Backend toggleTaskComplete sync:', err);
+          set({ planningError: err.message || 'Failed to toggle task completion' });
+        });
     },
     setTasks: (eventId, tasks) => {
       set((s) => {
@@ -899,10 +1355,12 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
     // Guests Slice
     guests: persisted?.guests || { 'evt-wedding-01': INITIAL_GUESTS },
+    guestSummaries: persisted?.guestSummaries || {},
     addGuest: (eventId, guest) => {
+      const tempId = `gst-${Date.now()}`;
       const newGuest: GuestItem = {
         ...guest,
-        id: `gst-${Date.now()}`,
+        id: tempId,
         eventId,
       };
       set((s) => ({
@@ -910,8 +1368,38 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           ...s.guests,
           [eventId]: [...(s.guests[eventId] || []), newGuest],
         },
+        planningError: null,
       }));
       persistState();
+      apiClient
+        .createGuest(eventId, {
+          fullName: guest.name,
+          email: guest.contact.includes('@') ? guest.contact : null,
+          phoneNumber: !guest.contact.includes('@') ? guest.contact : null,
+          guestCategory: guest.category,
+          rsvpStatus: guest.rsvpStatus === 'confirmed' ? 'attending' : guest.rsvpStatus,
+          plusOneAllowed: guest.accompanyingGuests > 0,
+          plusOneCount: guest.accompanyingGuests,
+          dietaryPreference: guest.dietaryPreference,
+          notes: `${guest.tableNumber ? `[${guest.tableNumber}] ` : ''}${guest.specialNeeds || ''} ${guest.notes || ''}`.trim() || null,
+        })
+        .then((res) => {
+          if (res?.id) {
+            set((s) => ({
+              guests: {
+                ...s.guests,
+                [eventId]: (s.guests[eventId] || []).map((g) =>
+                  g.id === tempId ? { ...g, id: res.id } : g
+                ),
+              },
+            }));
+          }
+          return get().fetchEventPlanningData(eventId);
+        })
+        .catch((err) => {
+          console.warn('Backend createGuest sync:', err);
+          set({ planningError: err.message || 'Failed to save guest to database' });
+        });
     },
     updateGuest: (eventId, id, updates) => {
       set((s) => ({
@@ -919,8 +1407,30 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           ...s.guests,
           [eventId]: (s.guests[eventId] || []).map((g) => (g.id === id ? { ...g, ...updates } : g)),
         },
+        planningError: null,
       }));
       persistState();
+      const payload: Record<string, any> = {};
+      if (updates.name) payload.fullName = updates.name;
+      if (updates.contact !== undefined) {
+        if (updates.contact.includes('@')) payload.email = updates.contact;
+        else payload.phoneNumber = updates.contact;
+      }
+      if (updates.category) payload.guestCategory = updates.category;
+      if (updates.rsvpStatus) payload.rsvpStatus = updates.rsvpStatus === 'confirmed' ? 'attending' : updates.rsvpStatus;
+      if (updates.accompanyingGuests !== undefined) payload.plusOneCount = updates.accompanyingGuests;
+      if (updates.dietaryPreference !== undefined) payload.dietaryPreference = updates.dietaryPreference;
+      if (updates.notes !== undefined || updates.specialNeeds !== undefined) {
+        payload.notes = `${updates.specialNeeds || ''} ${updates.notes || ''}`.trim();
+      }
+
+      apiClient
+        .updateGuest(eventId, id, payload)
+        .then(() => get().fetchEventPlanningData(eventId))
+        .catch((err) => {
+          console.warn('Backend updateGuest sync:', err);
+          set({ planningError: err.message || 'Failed to update guest in database' });
+        });
     },
     deleteGuest: (eventId, id) => {
       set((s) => ({
@@ -928,8 +1438,87 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           ...s.guests,
           [eventId]: (s.guests[eventId] || []).filter((g) => g.id !== id),
         },
+        planningError: null,
       }));
       persistState();
+      apiClient
+        .deleteGuest(eventId, id)
+        .then(() => get().fetchEventPlanningData(eventId))
+        .catch((err) => {
+          console.warn('Backend deleteGuest sync:', err);
+          set({ planningError: err.message || 'Failed to delete guest from database' });
+        });
+    },
+
+    // Timeline Activities Slice (Phase 3)
+    timelineItems: persisted?.timelineItems || {},
+    addTimelineItem: async (eventId, itemData) => {
+      const tempId = `tl-${Date.now()}`;
+      const newItem: TimelineActivityItem = {
+        ...itemData,
+        id: tempId,
+        eventId,
+        createdAt: new Date().toISOString(),
+      };
+      set((s) => ({
+        timelineItems: {
+          ...s.timelineItems,
+          [eventId]: [...(s.timelineItems[eventId] || []), newItem],
+        },
+        planningError: null,
+      }));
+      persistState();
+      try {
+        const res = await apiClient.createTimelineItem(eventId, itemData);
+        if (res?.id) {
+          set((s) => ({
+            timelineItems: {
+              ...s.timelineItems,
+              [eventId]: (s.timelineItems[eventId] || []).map((t) =>
+                t.id === tempId ? { ...t, id: res.id } : t
+              ),
+            },
+          }));
+        }
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend addTimelineItem sync:', err);
+        set({ planningError: err.message || 'Failed to save timeline activity to database' });
+      }
+    },
+    updateTimelineItem: async (eventId, id, updates) => {
+      set((s) => ({
+        timelineItems: {
+          ...s.timelineItems,
+          [eventId]: (s.timelineItems[eventId] || []).map((t) => (t.id === id ? { ...t, ...updates } : t)),
+        },
+        planningError: null,
+      }));
+      persistState();
+      try {
+        await apiClient.updateTimelineItem(eventId, id, updates);
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend updateTimelineItem sync:', err);
+        set({ planningError: err.message || 'Failed to update timeline activity in database' });
+      }
+    },
+    deleteTimelineItem: async (eventId, id) => {
+      set((s) => ({
+        timelineItems: {
+          ...s.timelineItems,
+          [eventId]: (s.timelineItems[eventId] || []).filter((t) => t.id !== id),
+        },
+        planningError: null,
+      }));
+      persistState();
+      try {
+        await apiClient.deleteTimelineItem(eventId, id);
+        await get().fetchEventPlanningData(eventId);
+      } catch (err: any) {
+        console.warn('Backend deleteTimelineItem sync:', err);
+        set({ planningError: err.message || 'Failed to delete timeline activity from database' });
+      }
     },
 
     // Vendors Slice
@@ -1137,15 +1726,45 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
     getCurrentBudgets: () => {
       const s = get();
-      return s.budgets[s.currentEventId] || [];
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.budgets[eventId] || [];
+    },
+    getCurrentExpenses: () => {
+      const s = get();
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.expenses[eventId] || [];
+    },
+    getCurrentBudgetSummary: () => {
+      const s = get();
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.budgetSummaries[eventId];
     },
     getCurrentTasks: () => {
       const s = get();
-      return s.tasks[s.currentEventId] || [];
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.tasks[eventId] || [];
     },
     getCurrentGuests: () => {
       const s = get();
-      return s.guests[s.currentEventId] || [];
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.guests[eventId] || [];
+    },
+    getCurrentGuestSummary: () => {
+      const s = get();
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.guestSummaries[eventId];
+    },
+    getCurrentTimeline: () => {
+      const s = get();
+      const currentEvent = s.events.find((e) => e.id === s.currentEventId) || s.events[0];
+      const eventId = currentEvent?.id || s.currentEventId;
+      return s.timelineItems[eventId] || [];
     },
     getCurrentVendors: () => {
       const s = get();

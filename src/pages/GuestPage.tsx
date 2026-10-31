@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Plus,
@@ -12,8 +13,10 @@ import {
   Check,
   X,
   SlidersHorizontal,
-  Utensils,
-  HeartHandshake,
+  RefreshCw,
+  UserPlus,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { GuestItem, RSVPStatus } from '../types';
@@ -26,13 +29,24 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
   const {
     getCurrentEvent,
     getCurrentGuests,
+    getCurrentGuestSummary,
     addGuest,
     updateGuest,
     deleteGuest,
+    planningLoading,
+    planningError,
+    fetchEventPlanningData,
   } = useAppStore();
 
   const event = getCurrentEvent();
   const guests = getCurrentGuests();
+  const guestSummary = getCurrentGuestSummary();
+
+  useEffect(() => {
+    if (event?.id) {
+      fetchEventPlanningData(event.id);
+    }
+  }, [event?.id]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [rsvpFilter, setRsvpFilter] = useState<string>('all');
@@ -55,12 +69,18 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
   if (!event) return null;
 
-  // Stats
+  // Real or deterministic calculations
   const confirmed = guests.filter((g) => g.rsvpStatus === 'confirmed');
   const pending = guests.filter((g) => g.rsvpStatus === 'pending');
   const declined = guests.filter((g) => g.rsvpStatus === 'declined');
-  const totalInvitedCount = guests.reduce((sum, g) => sum + 1 + g.accompanyingGuests, 0);
-  const expectedAttendance = confirmed.reduce((sum, g) => sum + 1 + g.accompanyingGuests, 0);
+
+  const expectedAttendance = guestSummary
+    ? guestSummary.expectedAttendeesHeadcount
+    : confirmed.reduce((sum, g) => sum + 1 + g.accompanyingGuests, 0);
+
+  const totalPermittedPlusOnes = guestSummary
+    ? guestSummary.totalPermittedPlusOnes
+    : guests.reduce((sum, g) => sum + g.accompanyingGuests, 0);
 
   // Filtered list
   const filteredGuests = guests.filter((g) => {
@@ -70,7 +90,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
       g.dietaryPreference.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRsvp = rsvpFilter === 'all' || g.rsvpStatus === rsvpFilter;
-    const matchesCategory = categoryFilter === 'all' || g.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || g.category.toLowerCase() === categoryFilter.toLowerCase();
 
     return matchesSearch && matchesRsvp && matchesCategory;
   });
@@ -125,18 +145,27 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-            Hospitality & RSVP
+            Hospitality & RSVP Management
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white mt-0.5">
             Guest List Management
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Track RSVPs, seating, dietary restrictions, and attendance for{' '}
+            Track RSVPs, seating, plus-ones, and dietary restrictions for{' '}
             <strong className="text-slate-700 dark:text-slate-300">{event.name}</strong>.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => fetchEventPlanningData(event.id)}
+            disabled={planningLoading}
+            className="p-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors flex items-center gap-1 shadow-2xs"
+            title="Refresh Guests Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${planningLoading ? 'animate-spin' : ''}`} />
+          </button>
+
           {onOpenAdaptiveModal && (
             <button
               onClick={onOpenAdaptiveModal}
@@ -156,6 +185,46 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
           </button>
         </div>
       </div>
+
+      {event.id === 'evt-wedding-01' && (
+        <div className="p-3.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span>
+              <strong>Sample Celebration Template:</strong> You are viewing preview guest list data. Create your live celebration to persist attendees and RSVPs to your Supabase PostgreSQL database.
+            </span>
+          </div>
+          <Link
+            to="/app/events/new"
+            className="px-3 py-1 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors shrink-0"
+          >
+            Create Event
+          </Link>
+        </div>
+      )}
+
+      {/* DATABASE SYNC NOTICE */}
+      {planningError && event.id !== 'evt-wedding-01' && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>
+              <strong>Database Sync Notice:</strong>{' '}
+              {planningError === 'Authorization header is required'
+                ? 'Authentication session required. Please sign in to sync with your cloud database.'
+                : planningError}
+            </span>
+          </div>
+          {planningError === 'Authorization header is required' && (
+            <Link
+              to="/login"
+              className="px-2.5 py-1 text-xs font-semibold bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors shrink-0"
+            >
+              Sign In
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* 2. STATS BAR */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -190,12 +259,12 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
         </div>
 
         <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <div className="text-xs text-slate-500 mb-1">Declined</div>
-          <div className="text-xl font-bold font-mono text-slate-400">
-            {declined.length} <span className="text-xs font-normal text-slate-400 font-sans">unable to attend</span>
+          <div className="text-xs text-slate-500 mb-1">Permitted Plus-Ones</div>
+          <div className="text-xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
+            {totalPermittedPlusOnes} <span className="text-xs font-normal text-slate-400 font-sans">plus-one slots</span>
           </div>
           <div className="text-[11px] text-slate-500 mt-1">
-            Freed seating capacity
+            {declined.length} declined parties
           </div>
         </div>
       </div>
@@ -206,7 +275,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Search by name, email, or dietary preference..."
+            placeholder="Search by name, contact, or dietary preference..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -220,7 +289,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
             className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
           >
             <option value="all">All RSVP Statuses</option>
-            <option value="confirmed">Confirmed</option>
+            <option value="confirmed">Confirmed / Attending</option>
             <option value="pending">Pending</option>
             <option value="declined">Declined</option>
           </select>
@@ -254,7 +323,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
           <form onSubmit={handleAddSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Guest / Party Name *
+                Guest / Party Full Name *
               </label>
               <input
                 type="text"
@@ -268,7 +337,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Contact (Email / Phone)
+                Contact (Email or Phone)
               </label>
               <input
                 type="text"
@@ -281,7 +350,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Category
+                Guest Category
               </label>
               <select
                 value={category}
@@ -298,7 +367,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Accompanying Guests (+count)
+                Accompanying Guests (+Plus Ones)
               </label>
               <input
                 type="number"
@@ -318,7 +387,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
                 onChange={(e) => setRsvpStatus(e.target.value as RSVPStatus)}
                 className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
               >
-                <option value="confirmed">Confirmed</option>
+                <option value="confirmed">Confirmed / Attending</option>
                 <option value="pending">Pending</option>
                 <option value="declined">Declined</option>
               </select>
@@ -330,7 +399,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
               </label>
               <input
                 type="text"
-                placeholder="e.g. Pure Jain / Vegetarian / Nut allergy"
+                placeholder="e.g. Vegetarian / Jain / Nut allergy"
                 value={dietary}
                 onChange={(e) => setDietary(e.target.value)}
                 className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
@@ -339,11 +408,11 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
             <div className="sm:col-span-3">
               <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Accessibility / Table Assignment Notes
+                Table Assignment & Notes
               </label>
               <input
                 type="text"
-                placeholder="e.g. Table 2 · Needs wheelchair ramp assistance"
+                placeholder="e.g. Table 2 · Requires wheelchair ramp"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
@@ -377,10 +446,10 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-slate-500">
                 <th className="py-3 px-4 font-semibold">Guest / Party</th>
                 <th className="py-3 px-4 font-semibold">Category</th>
-                <th className="py-3 px-4 font-semibold text-center">Party Size</th>
+                <th className="py-3 px-4 font-semibold text-center">Party Headcount</th>
                 <th className="py-3 px-4 font-semibold">RSVP Status</th>
                 <th className="py-3 px-4 font-semibold">Dietary</th>
-                <th className="py-3 px-4 font-semibold">Seating / Special Care</th>
+                <th className="py-3 px-4 font-semibold">Seating / Notes</th>
                 <th className="py-3 px-4 font-semibold text-center">Actions</th>
               </tr>
             </thead>
@@ -407,21 +476,25 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
                       </td>
 
                       <td className="py-3 px-4 text-center font-mono font-semibold">
-                        1 + {g.accompanyingGuests} ({1 + g.accompanyingGuests})
+                        1 + {g.accompanyingGuests} ({1 + g.accompanyingGuests} pax)
                       </td>
 
                       <td className="py-3 px-4">
-                        <span
-                          className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+                        <select
+                          value={g.rsvpStatus}
+                          onChange={(e) => updateGuest(event.id, g.id, { rsvpStatus: e.target.value as any })}
+                          className={`text-[11px] font-semibold rounded px-2 py-0.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 ${
                             g.rsvpStatus === 'confirmed'
-                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                              ? 'text-emerald-600'
                               : g.rsvpStatus === 'pending'
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                              ? 'text-amber-500'
+                              : 'text-slate-400'
                           }`}
                         >
-                          {g.rsvpStatus}
-                        </span>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="pending">Pending</option>
+                          <option value="declined">Declined</option>
+                        </select>
                       </td>
 
                       <td className="py-3 px-4 text-slate-700 dark:text-slate-300 font-medium">
@@ -435,7 +508,11 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
 
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => deleteGuest(event.id, g.id)}
+                          onClick={() => {
+                            if (window.confirm(`Delete guest record for "${g.name}"?`)) {
+                              deleteGuest(event.id, g.id);
+                            }
+                          }}
                           className="p-1 text-slate-400 hover:text-red-600 transition-colors"
                           title="Remove guest"
                         >

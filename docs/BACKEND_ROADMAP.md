@@ -9,7 +9,7 @@ This document outlines the multi-phase implementation roadmap for the EventPilot
 ```mermaid
 flowchart LR
     P1["Phase 1\nBackend Foundation\n✅ COMPLETED"] --> P2["Phase 2\nAuth & Events\n✅ COMPLETED"]
-    P2 --> P3["Phase 3\nBudget & Guests\n⏳ PLANNED"]
+    P2 --> P3["Phase 3\nBudget & Planning\n✅ COMPLETED"]
     P3 --> P4["Phase 4\nVendor Network\n⏳ PLANNED"]
     P4 --> P5["Phase 5\nPersonalized Ideas\n⏳ PLANNED"]
     P5 --> P6["Phase 6\nAdaptive Re-Planning\n⏳ PLANNED"]
@@ -49,12 +49,19 @@ flowchart LR
 
 ---
 
-### ⏳ Phase 3: Budget, Guests & Timeline
-**Status**: **PLANNED**
-- [ ] Budget category schema (`BudgetCategoryItem`) and financial analytics endpoints.
-- [ ] Guest list management (`GuestItem`) with RSVP tracking and dietary categorization.
-- [ ] Timeline milestone and task tracking (`TaskItem`) with dependency relationships.
-- [ ] Event readiness calculation algorithm.
+### ✅ Phase 3: Event Planning Management (Budget, Expenses, Guests, Tasks & Timeline)
+**Status**: **COMPLETED**
+- [x] Prisma database models: `BudgetCategory`, `Expense`, `Guest`, `Task`, `TaskDependency`, `TimelineItem`.
+- [x] Idempotent PostgreSQL migration SQL script with non-destructive constraint application.
+- [x] Budget Planner module: Categories CRUD, expense vouchers CRUD, category unassignment on deletion.
+- [x] Deterministic financial summary & variance calculation (Total Budget, Allocated, Estimated, Actual, Remaining, Utilization, Warning alerts).
+- [x] Guest Management module: Attendees CRUD, search, category filtering, RSVP tracking, headcount aggregation with plus-ones.
+- [x] Task Management module: Tasks CRUD, priority and status filtering, due date sorting, assignee labels.
+- [x] Task Dependency engine: Strict cycle detection using BFS traversal, self-dependency prevention, prerequisite completion guards.
+- [x] Event Timeline Run-of-Show module: Chronological schedule CRUD, start/end time chronological validation, location & category classification.
+- [x] Cross-tenant event data isolation: Complete ownership verification returning 404 for foreign/inaccessible event resources.
+- [x] Frontend React integration: Connected Zustand store, apiClient methods, BudgetPage, GuestPage, and TimelinePage.
+- [x] Automated integration testing: 4 new suites (40 new tests), total 11 suites, 79/79 passing tests with 100% success rate.
 
 ---
 

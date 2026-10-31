@@ -1,8 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { z } from 'zod';
 
-// Load environment variables from .env file
+// Load environment variables from process.cwd() and backend/.env directory
 dotenv.config();
+if (typeof __dirname !== 'undefined') {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+}
 
 /**
  * Environment variables schema definition using Zod

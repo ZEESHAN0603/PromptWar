@@ -1,4 +1,4 @@
-# EventPilot AI API Reference — Phase 2
+# EventPilot AI API Reference — Phase 3
 
 All endpoints return a standardized JSON format:
 
@@ -280,4 +280,569 @@ Unauthenticated, malformed, invalid, or expired tokens receive HTTP `401 Unautho
 }
 ```
 - **Error (404 Not Found)**: Inaccessible or nonexistent event.
+
+---
+
+## 3. Budget & Expense Management APIs
+
+All budget endpoints require authentication and verify that the target event belongs to the authenticated user. If inaccessible, HTTP `404 Not Found` is returned.
+
+### 3.1 Create Budget Category
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/budget/categories`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "name": "Catering & Banquet",
+  "allocatedAmount": 150000,
+  "description": "Buffet dinner and live beverage counters",
+  "color": "#10B981"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Budget category created successfully",
+  "data": {
+    "id": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+    "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+    "name": "Catering & Banquet",
+    "allocatedAmount": 150000,
+    "description": "Buffet dinner and live beverage counters",
+    "color": "#10B981",
+    "createdAt": "2026-10-31T14:00:00.000Z",
+    "updatedAt": "2026-10-31T14:00:00.000Z"
+  }
+}
+```
+- **Error (409 Conflict)**: Duplicate category name within the same event.
+
+### 3.2 List Budget Categories
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/budget/categories`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Budget categories retrieved successfully",
+  "data": [
+    {
+      "id": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+      "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+      "name": "Catering & Banquet",
+      "allocatedAmount": 150000,
+      "description": "Buffet dinner and live beverage counters",
+      "color": "#10B981",
+      "createdAt": "2026-10-31T14:00:00.000Z",
+      "updatedAt": "2026-10-31T14:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 3.3 Update Budget Category
+- **Method**: `PATCH`
+- **Endpoint**: `/api/events/:eventId/budget/categories/:categoryId`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "name": "Catering & Premium Bar",
+  "allocatedAmount": 180000
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Budget category updated successfully",
+  "data": {
+    "id": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+    "name": "Catering & Premium Bar",
+    "allocatedAmount": 180000
+  }
+}
+```
+
+### 3.4 Delete Budget Category
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/budget/categories/:categoryId`
+- **Auth Required**: Yes
+- **Behavior**: Safe deletion. Unassigns associated expenses (`categoryId = null`) rather than cascading delete, protecting expense history.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Budget category deleted successfully. Associated expenses unassigned.",
+  "data": {
+    "id": "b3e0258d-74d3-4876-b6d8-9dfc449553b1"
+  }
+}
+```
+
+### 3.5 Create Expense
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/budget/expenses`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "title": "Welcome Beverage Counter Advance",
+  "categoryId": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+  "estimatedAmount": 25000,
+  "actualAmount": 20000,
+  "paymentStatus": "paid",
+  "expenseDate": "2026-11-01T10:00:00.000Z",
+  "notes": "Paid via UPI receipt #88319"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Expense created successfully",
+  "data": {
+    "id": "8c599184-7512-4217-ba71-61cfef53e20e",
+    "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+    "categoryId": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+    "title": "Welcome Beverage Counter Advance",
+    "estimatedAmount": 25000,
+    "actualAmount": 20000,
+    "paymentStatus": "paid",
+    "expenseDate": "2026-11-01T10:00:00.000Z",
+    "notes": "Paid via UPI receipt #88319",
+    "createdAt": "2026-10-31T14:10:00.000Z",
+    "updatedAt": "2026-10-31T14:10:00.000Z"
+  }
+}
+```
+
+### 3.6 List Expenses
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/budget/expenses?categoryId=...&paymentStatus=...`
+- **Auth Required**: Yes
+- **Query Params**:
+  - `categoryId`: Filter by budget category UUID (optional)
+  - `paymentStatus`: Filter by `pending`, `partially_paid`, or `paid` (optional)
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Expenses retrieved successfully",
+  "data": [ ... ]
+}
+```
+
+### 3.7 Update Expense
+- **Method**: `PATCH`
+- **Endpoint**: `/api/events/:eventId/budget/expenses/:expenseId`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "actualAmount": 22000,
+  "paymentStatus": "paid"
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Expense updated successfully",
+  "data": { ... }
+}
+```
+
+### 3.8 Delete Expense
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/budget/expenses/:expenseId`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Expense deleted successfully",
+  "data": {
+    "id": "8c599184-7512-4217-ba71-61cfef53e20e"
+  }
+}
+```
+
+### 3.9 Get Budget Summary & Alerts
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/budget/summary`
+- **Auth Required**: Yes
+- **Description**: Returns deterministic calculation of total budget, allocations, estimated vs actual expenses, remaining balance, utilization percentage, category-level variance, and automated over-budget / near-budget warnings.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Budget summary calculated successfully",
+  "data": {
+    "totalBudget": 500000,
+    "totalAllocated": 180000,
+    "totalEstimatedExpenses": 25000,
+    "totalActualExpenses": 22000,
+    "remainingBudget": 478000,
+    "budgetUtilization": 4.4,
+    "warning": null,
+    "isOverBudget": false,
+    "categoryBreakdown": [
+      {
+        "categoryId": "b3e0258d-74d3-4876-b6d8-9dfc449553b1",
+        "categoryName": "Catering & Premium Bar",
+        "allocatedAmount": 180000,
+        "totalActual": 22000,
+        "totalEstimated": 25000,
+        "variance": 158000,
+        "isOverBudget": false
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4. Guest Management APIs
+
+### 4.1 Create Guest
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/guests`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "fullName": "Vikram Mehta",
+  "email": "vikram@example.com",
+  "phoneNumber": "+91 98765 11111",
+  "guestCategory": "VIP",
+  "rsvpStatus": "attending",
+  "plusOneAllowed": true,
+  "plusOneCount": 1,
+  "dietaryPreference": "Vegetarian",
+  "notes": "Front row seating requested"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Guest created successfully",
+  "data": {
+    "id": "e21c3247-4952-411a-b611-66795f573ad1",
+    "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+    "fullName": "Vikram Mehta",
+    "email": "vikram@example.com",
+    "phoneNumber": "+91 98765 11111",
+    "guestCategory": "VIP",
+    "rsvpStatus": "attending",
+    "plusOneAllowed": true,
+    "plusOneCount": 1,
+    "dietaryPreference": "Vegetarian",
+    "notes": "Front row seating requested",
+    "createdAt": "2026-10-31T14:30:00.000Z",
+    "updatedAt": "2026-10-31T14:30:00.000Z"
+  }
+}
+```
+
+### 4.2 List Guests
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/guests?rsvpStatus=...&guestCategory=...&search=...`
+- **Auth Required**: Yes
+- **Query Params**:
+  - `rsvpStatus`: Filter by `pending`, `invited`, `attending`, `declined`
+  - `guestCategory`: Filter by category name
+  - `search`: Search by full name, email, or notes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Guests retrieved successfully",
+  "data": [ ... ]
+}
+```
+
+### 4.3 Update Guest
+- **Method**: `PATCH`
+- **Endpoint**: `/api/events/:eventId/guests/:guestId`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "rsvpStatus": "attending",
+  "dietaryPreference": "Vegan"
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Guest updated successfully",
+  "data": { ... }
+}
+```
+
+### 4.4 Delete Guest
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/guests/:guestId`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Guest deleted successfully",
+  "data": {
+    "id": "e21c3247-4952-411a-b611-66795f573ad1"
+  }
+}
+```
+
+### 4.5 Get Guest Attendance Summary
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/guests/summary/stats`
+- **Auth Required**: Yes
+- **Description**: Returns headcount aggregation including direct guests and plus-ones across all RSVP statuses.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Guest summary calculated successfully",
+  "data": {
+    "totalInvited": 50,
+    "totalAttending": 35,
+    "totalDeclined": 5,
+    "totalPending": 10,
+    "totalPlusOnes": 12,
+    "confirmedHeadcount": 47
+  }
+}
+```
+
+---
+
+## 5. Task Management & Dependencies APIs
+
+### 5.1 Create Task
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/tasks`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "title": "Finalize Catering Menu",
+  "description": "Approve tasting items and dessert bar options",
+  "dueDate": "2026-11-05T18:00:00.000Z",
+  "priority": "high",
+  "status": "todo",
+  "assignedTo": "Aditi & Chef"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Task created successfully",
+  "data": {
+    "id": "c138e6df-7935-4ae2-a251-cb3e63db76f9",
+    "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+    "title": "Finalize Catering Menu",
+    "priority": "high",
+    "status": "todo",
+    "dueDate": "2026-11-05T18:00:00.000Z",
+    "assignedTo": "Aditi & Chef",
+    "createdAt": "2026-10-31T15:00:00.000Z",
+    "updatedAt": "2026-10-31T15:00:00.000Z",
+    "dependencies": [],
+    "dependents": []
+  }
+}
+```
+
+### 5.2 List Tasks
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/tasks?status=...&priority=...&assignedTo=...&sortBy=dueDate&order=asc`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Tasks retrieved successfully",
+  "data": [ ... ]
+}
+```
+
+### 5.3 Update Task
+- **Method**: `PATCH`
+- **Endpoint**: `/api/events/:eventId/tasks/:taskId`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "status": "completed",
+  "overrideIncompletePrerequisites": false
+}
+```
+- **Error (400 Bad Request)**: If task has incomplete prerequisites and `overrideIncompletePrerequisites` is false.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Task updated successfully",
+  "data": { ... }
+}
+```
+
+### 5.4 Delete Task
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/tasks/:taskId`
+- **Auth Required**: Yes
+- **Behavior**: Cascades removal of task dependency relationships safely without deleting related tasks.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Task deleted successfully",
+  "data": {
+    "id": "c138e6df-7935-4ae2-a251-cb3e63db76f9"
+  }
+}
+```
+
+### 5.5 Add Task Dependency
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/tasks/:taskId/dependencies`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "dependsOnTaskId": "a0000000-0000-0000-0000-000000000001"
+}
+```
+- **Cycle Detection**: The backend runs BFS traversal over the dependency graph. If adding this edge forms a direct or transitive cycle, returns HTTP `409 Conflict`.
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Task dependency created successfully",
+  "data": {
+    "id": "d0000000-0000-0000-0000-000000000001",
+    "taskId": "c138e6df-7935-4ae2-a251-cb3e63db76f9",
+    "dependsOnTaskId": "a0000000-0000-0000-0000-000000000001"
+  }
+}
+```
+- **Error (400 Bad Request)**: Self-dependency or task belonging to different event.
+- **Error (409 Conflict)**: Dependency cycle detected.
+
+### 5.6 Remove Task Dependency
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/tasks/:taskId/dependencies/:dependsOnTaskId`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Task dependency removed successfully",
+  "data": {
+    "deleted": true
+  }
+}
+```
+
+---
+
+## 6. Event Timeline Management APIs
+
+Timeline items represent day-of run-of-show activities and scheduled milestones, separate from planning preparation tasks.
+
+### 6.1 Create Timeline Item
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/timeline`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "title": "Guest Welcome & Refreshments",
+  "description": "Rose water welcome drinks and classical sitar prelude",
+  "startTime": "2026-11-12T17:00:00.000Z",
+  "endTime": "2026-11-12T18:00:00.000Z",
+  "location": "North Courtyard",
+  "category": "Ceremony",
+  "status": "scheduled"
+}
+```
+- **Chronological Rule**: If provided, `endTime` must be equal to or later than `startTime`.
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Timeline item created successfully",
+  "data": {
+    "id": "7fa1428a-789a-471a-96e0-d096a58f44d1",
+    "eventId": "4b6a9531-ec7b-40fa-80ad-84ee49fb627d",
+    "title": "Guest Welcome & Refreshments",
+    "startTime": "2026-11-12T17:00:00.000Z",
+    "endTime": "2026-11-12T18:00:00.000Z",
+    "location": "North Courtyard",
+    "category": "Ceremony",
+    "status": "scheduled",
+    "createdAt": "2026-10-31T15:30:00.000Z",
+    "updatedAt": "2026-10-31T15:30:00.000Z"
+  }
+}
+```
+
+### 6.2 List Timeline Items
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/timeline?category=...&status=...`
+- **Auth Required**: Yes
+- **Response (200 OK)**: Items sorted chronologically by `startTime` ascending.
+```json
+{
+  "success": true,
+  "message": "Timeline items retrieved successfully",
+  "data": [ ... ]
+}
+```
+
+### 6.3 Update Timeline Item
+- **Method**: `PATCH`
+- **Endpoint**: `/api/events/:eventId/timeline/:itemId`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "status": "in_progress",
+  "endTime": "2026-11-12T18:15:00.000Z"
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Timeline item updated successfully",
+  "data": { ... }
+}
+```
+
+### 6.4 Delete Timeline Item
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/timeline/:itemId`
+- **Auth Required**: Yes
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Timeline item deleted successfully",
+  "data": {
+    "id": "7fa1428a-789a-471a-96e0-d096a58f44d1"
+  }
+}
+```
+
 

@@ -70,17 +70,18 @@ EventPilot-AI/
 │   ├── store/              # Zustand global application state store
 │   └── types/              # Domain TypeScript interfaces
 ├── backend/                # Node.js + Express + Prisma backend service
-│   ├── prisma/             # Database schema (Profile & Event models)
+│   ├── prisma/             # Schema & migrations (Profile, Event, Budget, Expense, Guest, Task, Timeline)
 │   ├── src/
-│   │   ├── config/         # Zod env validation, Prisma singleton, Pino logger
-│   │   ├── controllers/    # Route controllers (HealthController)
-│   │   ├── middleware/     # Request logger, 404 handler, centralized error handler
-│   │   ├── routes/         # Express routers (health.routes.ts)
-│   │   ├── services/       # Domain business services (HealthService)
-│   │   ├── utils/          # Standard ApiResponse and ApiError utilities
+│   │   ├── config/         # Zod env validation, Prisma singleton, Pino logger, Supabase client
+│   │   ├── controllers/    # Route controllers (user, event, budget, guest, task, timeline, health)
+│   │   ├── middleware/     # Auth JWT verification, request logger, error handling
+│   │   ├── routes/         # Express routers (users, events, budget, guests, tasks, timeline, health)
+│   │   ├── services/       # Domain business services with ownership guards & BFS cycle detection
+│   │   ├── validators/     # Zod request validators for events, users, budget, guests, tasks, timeline
+│   │   ├── utils/          # Standard ApiResponse, ApiError, route param helpers
 │   │   ├── app.ts          # Express application factory (decoupled for testing)
 │   │   └── server.ts       # Server listener with graceful shutdown
-│   ├── tests/              # Vitest + Supertest integration tests
+│   ├── tests/              # Vitest + Supertest integration tests (11 suites, 79 tests)
 │   ├── docs/               # In-depth backend documentation
 │   ├── .env.example        # Backend environment template
 │   ├── .gitignore          # Backend git ignore rules
@@ -188,14 +189,21 @@ uvicorn app.main:app --reload --port 8000
 
 ### Backend Tests (Node.js / Vitest / Supertest)
 ```bash
-cd backend
-npm run test
+npm --prefix backend test
 ```
 Tests:
 - Health check endpoints (`/api/health`, `/api/health/db`, `/api/health/detailed`)
 - Zod environment parsing and secret masking
 - Operational vs. internal error handling shapes
 - Database connection failure and degradation handling
+- Authentication middleware and token validation
+- User profile provisioning and management
+- Event CRUD, pagination, filtering, and cross-tenant data isolation
+- Budget categories, expenses, variance, and warning alerts
+- Guest management, RSVP tracking, and plus-one headcount aggregation
+- Task management, due date sorting, and BFS dependency cycle detection
+- Event timeline run-of-show and chronological validation
+- **Status: 11 test files, 79/79 passing tests (100% pass rate)**
 
 ### Python AI Service Tests (pytest)
 ```bash
@@ -226,7 +234,7 @@ npm run build
 |---|---|---|
 | **Phase 1** | **Backend Foundation, Supabase/Prisma Setup, AI Scaffold, Tests & Docs** | **✅ Completed** |
 | **Phase 2** | **Authentication, User Profiles & Event Management CRUD** | **✅ Completed** |
-| Phase 3 | Budget, Guests & Timeline | ⏳ Planned |
+| **Phase 3** | **Event Planning: Budget, Expenses, Guests, Tasks & Timeline** | **✅ Completed** |
 | Phase 4 | Community Vendor Recommendation System | ⏳ Planned |
 | Phase 5 | Personalized Ideas AI (Gemini Integration) | ⏳ Planned |
 | Phase 6 | Adaptive Re-Planning Engine | ⏳ Planned |
@@ -236,24 +244,47 @@ For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMA
 
 ---
 
-## 11. Phase 2 Features & Endpoints
+## 11. Phase 3 Planning Features & Endpoints
 
-### Authentication & Profile APIs
-- `GET /api/users/me` — Authenticated profile retrieval & idempotent auto-provisioning
-- `PATCH /api/users/me` — Permitted profile update (`fullName`, `avatarUrl`, `phoneNumber`)
-- `GET /api/users/me/events` — Authenticated user's events list
+### Budget & Expense Management APIs
+- `POST /api/events/:eventId/budget/categories` — Create budget category
+- `GET /api/events/:eventId/budget/categories` — List budget categories
+- `PATCH /api/events/:eventId/budget/categories/:categoryId` — Update budget category
+- `DELETE /api/events/:eventId/budget/categories/:categoryId` — Delete category (safely unassigns expenses)
+- `POST /api/events/:eventId/budget/expenses` — Create expense voucher
+- `GET /api/events/:eventId/budget/expenses` — List expenses with category/status filters
+- `PATCH /api/events/:eventId/budget/expenses/:expenseId` — Update expense
+- `DELETE /api/events/:eventId/budget/expenses/:expenseId` — Delete expense
+- `GET /api/events/:eventId/budget/summary` — Deterministic budget calculations, variance, & warning alerts
 
-### Event Management APIs
-- `POST /api/events` — Create event (ownership strictly assigned to authenticated user)
-- `GET /api/events` — List user's events with pagination, filtering, and sorting
-- `GET /api/events/:eventId` — Retrieve event details (ownership verified, 404 for inaccessible)
-- `PATCH /api/events/:eventId` — Partial update event fields (cannot transfer ownership)
-- `DELETE /api/events/:eventId` — Delete user's event (leaves shared records untouched)
+### Guest Management APIs
+- `POST /api/events/:eventId/guests` — Add attendee
+- `GET /api/events/:eventId/guests` — List attendees with search & filters
+- `PATCH /api/events/:eventId/guests/:guestId` — Update guest & RSVP status
+- `DELETE /api/events/:eventId/guests/:guestId` — Delete guest
+- `GET /api/events/:eventId/guests/summary/stats` — Attendee & plus-one headcount aggregation
 
-### Documentation Links
+### Task Management & Dependency APIs
+- `POST /api/events/:eventId/tasks` — Create planning task
+- `GET /api/events/:eventId/tasks` — List tasks with status/priority filters & sorting
+- `PATCH /api/events/:eventId/tasks/:taskId` — Update task (guards against incomplete prerequisites)
+- `DELETE /api/events/:eventId/tasks/:taskId` — Delete task & cascade dependency edges
+- `POST /api/events/:eventId/tasks/:taskId/dependencies` — Add task dependency with BFS cycle detection
+- `DELETE /api/events/:eventId/tasks/:taskId/dependencies/:dependsOnTaskId` — Remove dependency
+
+### Event Run-of-Show Timeline APIs
+- `POST /api/events/:eventId/timeline` — Create milestone (validates `endTime >= startTime`)
+- `GET /api/events/:eventId/timeline` — List timeline items sorted chronologically
+- `PATCH /api/events/:eventId/timeline/:itemId` — Update milestone
+- `DELETE /api/events/:eventId/timeline/:itemId` — Delete milestone
+
+---
+
+## 12. Documentation Links
 - [`docs/architecture.md`](docs/architecture.md) — System architecture & request flow
-- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference
-- [`docs/database-design.md`](docs/database-design.md) — Profile and Event schema design
+- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference (Phases 1-3)
+- [`docs/database-design.md`](docs/database-design.md) — Database schema, ER diagram, and indexes
 - [`docs/authentication.md`](docs/authentication.md) — Supabase Auth and JWT verification
-- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports
+- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports (79 tests)
+- [`docs/phase-3-completion.md`](docs/phase-3-completion.md) — Phase 3 completion report
 - [`docs/phase-2-completion.md`](docs/phase-2-completion.md) — Phase 2 completion report
