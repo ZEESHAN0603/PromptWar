@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { EventService } from './event.service.js';
 import {
   CreateTaskInput,
   UpdateTaskInput,
@@ -38,6 +39,8 @@ export class TaskService {
         assignedTo: input.assignedTo,
       },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       ...task,
@@ -249,6 +252,8 @@ export class TaskService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return {
       id: updated.id,
       eventId: updated.eventId,
@@ -284,6 +289,8 @@ export class TaskService {
     await prisma.task.delete({
       where: { id: taskId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: taskId,
@@ -356,6 +363,8 @@ export class TaskService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return {
       id: created.id,
       taskId: created.taskId,
@@ -418,6 +427,8 @@ export class TaskService {
     await prisma.taskDependency.delete({
       where: { id: dependencyId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: dependencyId,

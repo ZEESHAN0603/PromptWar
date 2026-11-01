@@ -51,6 +51,14 @@ interface UserProfile {
   phoneNumber?: string;
 }
 
+const EMPTY_USER_PROFILE: UserProfile = {
+  name: '',
+  email: '',
+  avatar: '',
+  role: '',
+  phoneNumber: '',
+};
+
 interface AppStoreState {
   // Auth Slice
   user: UserProfile;
@@ -293,14 +301,8 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
   return {
     // Auth Slice
-    user: persisted?.user || {
-      name: 'Aditi Deshmukh',
-      email: 'aditi.planner@eventpilot.example.com',
-      avatar: '',
-      role: 'Lead Celebration Architect',
-      phoneNumber: '',
-    },
-    isAuthenticated: persisted?.isAuthenticated ?? true, // Default to demo auth logged in
+    user: persisted?.user || EMPTY_USER_PROFILE,
+    isAuthenticated: persisted?.isAuthenticated ?? false,
     authLoading: false,
     authError: null,
 
@@ -309,13 +311,21 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         set({ authLoading: true, authError: null });
         let { data: { session } } = await supabase.auth.getSession();
 
-        if (!session?.user && isSupabaseConfigured) {
-          const { data: signInData } = await supabase.auth.signInWithPassword({
-            email: 'aditi.planner@eventpilot.example.com',
-            password: 'celebration2026',
-          });
-          if (signInData?.session) {
-            session = signInData.session;
+        // Strictly avoid silent demo logins in production; demo sign-in is opt-in for dev only
+        const enableDemoFallback =
+          !import.meta.env.PROD && import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
+
+        if (!session?.user && enableDemoFallback && isSupabaseConfigured) {
+          const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+          const demoPass = import.meta.env.VITE_DEMO_PASSWORD;
+          if (demoEmail && demoPass) {
+            const { data: signInData } = await supabase.auth.signInWithPassword({
+              email: demoEmail,
+              password: demoPass,
+            });
+            if (signInData?.session) {
+              session = signInData.session;
+            }
           }
         }
 
@@ -337,6 +347,11 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           } catch (e) {
             console.warn('Backend profile sync failed on init:', e);
           }
+        } else {
+          set({
+            isAuthenticated: false,
+            user: EMPTY_USER_PROFILE,
+          });
         }
       } catch (err: any) {
         console.warn('Supabase auth init check:', err);
@@ -364,11 +379,14 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         if (isSupabaseConfigured) {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) {
-            // If demo credentials are used and not yet created in Supabase Auth, attempt sign-up or fallback to demo session
+            // Strictly guard demo account handling to non-production environments with explicit opt-in
+            const enableDemoFallback =
+              !import.meta.env.PROD && import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
+
             const isDemoEmail =
-              email === 'aditi.planner@eventpilot.example.com' ||
-              email === 'demo.organizer@eventpilot.example.com' ||
-              email.endsWith('@eventpilot.example.com');
+              enableDemoFallback &&
+              (email === import.meta.env.VITE_DEMO_EMAIL ||
+                email.endsWith('@eventpilot.example.com'));
 
             if (isDemoEmail) {
               try {
@@ -400,7 +418,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
                 console.warn('Demo auto-signup error:', signUpErr);
               }
 
-              // Activate demo mode access
+              // Activate demo mode access in local dev
               get().login(email, 'Aditi Deshmukh');
               set({ authLoading: false });
               persistState();
@@ -410,6 +428,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
             set({ authLoading: false, authError: error.message });
             return { success: false, error: error.message };
           }
+
           if (data.session) {
             setApiAccessToken(data.session.access_token);
             try {

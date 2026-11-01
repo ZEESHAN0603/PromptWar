@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { EventService } from './event.service.js';
 import {
   CreateBudgetCategoryInput,
   UpdateBudgetCategoryInput,
@@ -55,6 +56,8 @@ export class BudgetService {
         color: input.color,
       },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: category.id,
@@ -150,6 +153,8 @@ export class BudgetService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return {
       id: updated.id,
       eventId: updated.eventId,
@@ -182,6 +187,8 @@ export class BudgetService {
     await prisma.budgetCategory.delete({
       where: { id: categoryId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: categoryId,
@@ -224,6 +231,8 @@ export class BudgetService {
         },
       },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: expense.id,
@@ -320,6 +329,8 @@ export class BudgetService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     if (!expense || expense.eventId !== eventId) {
       throw ApiError.notFound('Expense not found');
     }
@@ -388,6 +399,8 @@ export class BudgetService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return {
       id: updated.id,
       eventId: updated.eventId,
@@ -419,6 +432,8 @@ export class BudgetService {
     await prisma.expense.delete({
       where: { id: expenseId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: expenseId,

@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { EventService } from './event.service.js';
 
 async function verifyEventAccess(eventId: string, userId: string) {
   const profile = await prisma.profile.findUnique({ where: { id: userId } });
@@ -55,7 +56,7 @@ export async function addVendorToEvent(
 
   const category = data.category || vendor.category;
 
-  return prisma.eventVendor.create({
+  const created = await prisma.eventVendor.create({
     data: {
       eventId,
       vendorId: data.vendorId,
@@ -72,6 +73,10 @@ export async function addVendorToEvent(
       expenses: true,
     },
   });
+
+  await EventService.touchPlanningRevision(eventId);
+
+  return created;
 }
 
 export async function listEventVendors(eventId: string, userId: string) {
@@ -111,7 +116,7 @@ export async function updateEventVendor(
     throw ApiError.notFound('Event vendor record not found');
   }
 
-  return prisma.eventVendor.update({
+  const updated = await prisma.eventVendor.update({
     where: { id },
     data: {
       category: data.category !== undefined ? data.category : eventVendor.category,
@@ -127,6 +132,10 @@ export async function updateEventVendor(
       expenses: true,
     },
   });
+
+  await EventService.touchPlanningRevision(eventId);
+
+  return updated;
 }
 
 export async function deleteEventVendor(eventId: string, id: string, userId: string) {
@@ -143,6 +152,8 @@ export async function deleteEventVendor(eventId: string, id: string, userId: str
   await prisma.eventVendor.delete({
     where: { id },
   });
+
+  await EventService.touchPlanningRevision(eventId);
 
   return { success: true, message: 'Vendor removed from event workspace' };
 }

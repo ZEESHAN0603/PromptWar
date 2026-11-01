@@ -7,8 +7,11 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { loginWithSupabase, login } = useAppStore();
 
-  const [email, setEmail] = useState('aditi.planner@eventpilot.example.com');
-  const [password, setPassword] = useState('celebration2026');
+  const isDemoEnabled =
+    !import.meta.env.PROD && import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,15 +41,23 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleQuickDemoLogin = async () => {
+    if (!isDemoEnabled) return;
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+    const demoPass = import.meta.env.VITE_DEMO_PASSWORD;
+    if (!demoEmail || !demoPass) {
+      setError('Demo credentials not configured in environment.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    const result = await loginWithSupabase('aditi.planner@eventpilot.example.com', 'celebration2026');
+    const result = await loginWithSupabase(demoEmail, demoPass);
     setIsLoading(false);
     if (result.success) {
       navigate('/app/dashboard');
     } else {
       // Fallback to local demo access if Supabase network fails
-      login('aditi.planner@eventpilot.example.com', 'Aditi Deshmukh');
+      login(demoEmail, 'Celebration Planner');
       navigate('/app/dashboard');
     }
   };
@@ -128,16 +139,18 @@ export const LoginPage: React.FC = () => {
                 />
                 <span>Remember this session</span>
               </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('demo.organizer@eventpilot.example.com');
-                  setPassword('celebration2026');
-                }}
-                className="text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Reset Demo Pass
-              </button>
+              {isDemoEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail(import.meta.env.VITE_DEMO_EMAIL || '');
+                    setPassword(import.meta.env.VITE_DEMO_PASSWORD || '');
+                  }}
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  Fill Demo Pass
+                </button>
+              )}
             </div>
 
             <button
@@ -155,20 +168,24 @@ export const LoginPage: React.FC = () => {
               )}
             </button>
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-              <span className="flex-shrink mx-3 text-[11px] text-slate-400">or explore instantly</span>
-              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-            </div>
+            {isDemoEnabled && (
+              <>
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                  <span className="flex-shrink mx-3 text-[11px] text-slate-400">or explore in development</span>
+                  <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                </div>
 
-            <button
-              type="button"
-              onClick={handleQuickDemoLogin}
-              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
-            >
-              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-              <span>Quick Demo Access (No Password Required)</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={handleQuickDemoLogin}
+                  className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
+                >
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Quick Demo Access (Development Only)</span>
+                </button>
+              </>
+            )}
           </form>
 
           <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 text-center">

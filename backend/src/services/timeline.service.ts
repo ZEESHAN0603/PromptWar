@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { EventService } from './event.service.js';
 import {
   CreateTimelineItemInput,
   UpdateTimelineItemInput,
@@ -45,6 +46,8 @@ export class TimelineService {
         status: input.status,
       },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       ...item,
@@ -165,6 +168,8 @@ export class TimelineService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return {
       id: updated.id,
       eventId: updated.eventId,
@@ -198,6 +203,8 @@ export class TimelineService {
     await prisma.timelineItem.delete({
       where: { id: timelineItemId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: timelineItemId,

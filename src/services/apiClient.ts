@@ -38,17 +38,26 @@ export async function getApiAccessToken(): Promise<string | null> {
       }
     } catch {}
 
-    // Auto-authenticate with confirmed demo planner account if session is missing
-    const { data: signInData } = await supabase.auth.signInWithPassword({
-      email: 'aditi.planner@eventpilot.example.com',
-      password: 'celebration2026',
-    });
-    if (signInData?.session?.access_token) {
-      memoryToken = signInData.session.access_token;
-      try {
-        localStorage.setItem('eventpilot_api_token', memoryToken);
-      } catch {}
-      return memoryToken;
+    // Optional demo authentication fallback (strictly gated to non-production and explicit opt-in)
+    const enableDemoFallback =
+      !import.meta.env.PROD && import.meta.env.VITE_ENABLE_DEMO_FALLBACK === 'true';
+
+    if (enableDemoFallback) {
+      const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+      const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+      if (demoEmail && demoPassword) {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: demoEmail,
+          password: demoPassword,
+        });
+        if (signInData?.session?.access_token) {
+          memoryToken = signInData.session.access_token;
+          try {
+            localStorage.setItem('eventpilot_api_token', memoryToken);
+          } catch {}
+          return memoryToken;
+        }
+      }
     }
 
     return null;

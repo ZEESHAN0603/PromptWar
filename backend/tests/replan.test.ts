@@ -393,6 +393,7 @@ describe('Adaptive Event Re-Planning Engine (Phase 6 Endpoints)', () => {
             create: vi.fn().mockResolvedValue(mockVersion),
           },
           event: {
+            findUnique: vi.fn().mockResolvedValue(baseEvent),
             update: vi.fn().mockResolvedValue({
               ...baseEvent,
               budget: 700000,
@@ -400,6 +401,7 @@ describe('Adaptive Event Re-Planning Engine (Phase 6 Endpoints)', () => {
             }),
           },
           eventReplanProposal: {
+            findUnique: vi.fn().mockResolvedValue(mockProposal),
             update: vi.fn().mockResolvedValue({
               ...mockProposal,
               status: 'APPLIED',
@@ -447,6 +449,65 @@ describe('Adaptive Event Re-Planning Engine (Phase 6 Endpoints)', () => {
 
       expect(res.status).toBe(409);
       expect(res.body.message).toContain('already been applied');
+    });
+
+    it('should reject application atomically in transaction if proposal became APPLIED concurrently', async () => {
+      // Outer check sees READY_FOR_REVIEW
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(mockProposal as any);
+
+      // Inner transaction lock sees APPLIED by a racing worker
+      vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
+        const mockTx = {
+          eventReplanProposal: {
+            findUnique: vi.fn().mockResolvedValue({
+              ...mockProposal,
+              status: 'APPLIED',
+            }),
+          },
+        };
+        return callback(mockTx);
+      });
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${mockProposal.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: true, guestCount: false, eventDate: false },
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('already been applied');
+    });
+
+    it('should reject application atomically if event revision was bumped concurrently during transaction lock', async () => {
+      // Outer check sees matching updatedAt
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(mockProposal as any);
+
+      // Inner transaction lock detects that event was updated after proposal creation
+      vi.spyOn(prisma, '$transaction').mockImplementation(async (callback: any) => {
+        const mockTx = {
+          eventReplanProposal: {
+            findUnique: vi.fn().mockResolvedValue(mockProposal),
+          },
+          event: {
+            findUnique: vi.fn().mockResolvedValue({
+              ...baseEvent,
+              updatedAt: new Date('2026-10-16T00:00:00Z'), // Later than baseEventUpdatedAt (2026-10-15T12:00:00Z)
+            }),
+          },
+        };
+        return callback(mockTx);
+      });
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${mockProposal.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: true, guestCount: false, eventDate: false },
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('The celebration was modified after this re-planning proposal was generated');
     });
   });
 
@@ -553,6 +614,115 @@ describe('Adaptive Event Re-Planning Engine (Phase 6 Endpoints)', () => {
       expect(guestDiff.fromValue).toBe(200);
       expect(guestDiff.toValue).toBe(250);
       expect(guestDiff.difference).toBe(50);
+    });
+  });
+
+  describe('7. Concurrency & Planning Revision Invalidation', () => {
+    it('should reject proposal approval with 409 Conflict when concurrent expense modification advances event revision', async () => {
+      // Proposal was generated at 12:00
+      const proposalAt12 = {
+        ...mockProposal,
+        baseEventUpdatedAt: new Date('2026-10-15T12:00:00.000Z'),
+      };
+
+      // Concurrent expense mutation touches event revision to 12:05
+      const modifiedEvent = {
+        ...baseEvent,
+        updatedAt: new Date('2026-10-15T12:05:00.000Z'),
+      };
+
+      vi.spyOn(prisma.event, 'findUnique').mockResolvedValue(modifiedEvent as any);
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(proposalAt12 as any);
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${proposalAt12.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: true, guestCount: false, eventDate: false },
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('modified after this re-planning proposal was generated');
+    });
+
+    it('should reject proposal approval with 409 Conflict when concurrent guest mutation advances event revision', async () => {
+      const proposalAt12 = {
+        ...mockProposal,
+        baseEventUpdatedAt: new Date('2026-10-15T12:00:00.000Z'),
+      };
+
+      // Concurrent guest RSVP change updates event revision
+      const modifiedEvent = {
+        ...baseEvent,
+        updatedAt: new Date('2026-10-15T12:02:30.000Z'),
+      };
+
+      vi.spyOn(prisma.event, 'findUnique').mockResolvedValue(modifiedEvent as any);
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(proposalAt12 as any);
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${proposalAt12.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: false, guestCount: true, eventDate: false },
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('modified after this re-planning proposal was generated');
+    });
+
+    it('should reject proposal approval with 409 Conflict when concurrent task mutation advances event revision', async () => {
+      const proposalAt12 = {
+        ...mockProposal,
+        baseEventUpdatedAt: new Date('2026-10-15T12:00:00.000Z'),
+      };
+
+      // Concurrent task creation updates event revision
+      const modifiedEvent = {
+        ...baseEvent,
+        updatedAt: new Date('2026-10-15T12:08:00.000Z'),
+      };
+
+      vi.spyOn(prisma.event, 'findUnique').mockResolvedValue(modifiedEvent as any);
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(proposalAt12 as any);
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${proposalAt12.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: false, guestCount: false, eventDate: false },
+          approvedTaskChanges: [{ taskId: 'task-1', proposedDueDate: '2026-12-01T00:00:00Z' }],
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('modified after this re-planning proposal was generated');
+    });
+
+    it('should reject proposal approval with 409 Conflict when concurrent timeline item advances event revision', async () => {
+      const proposalAt12 = {
+        ...mockProposal,
+        baseEventUpdatedAt: new Date('2026-10-15T12:00:00.000Z'),
+      };
+
+      // Concurrent timeline adjustment updates event revision
+      const modifiedEvent = {
+        ...baseEvent,
+        updatedAt: new Date('2026-10-15T12:15:00.000Z'),
+      };
+
+      vi.spyOn(prisma.event, 'findUnique').mockResolvedValue(modifiedEvent as any);
+      vi.spyOn(prisma.eventReplanProposal, 'findUnique').mockResolvedValue(proposalAt12 as any);
+
+      const res = await request(app)
+        .post(`/api/events/${baseEvent.id}/replan/${proposalAt12.id}/apply`)
+        .set('Authorization', 'Bearer valid_normal_token')
+        .send({
+          approvedChanges: { budget: false, guestCount: false, eventDate: false },
+          approvedTimelineChanges: [{ timelineItemId: 'tl-1', proposedStartTime: '2026-12-20T17:00:00Z' }],
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('modified after this re-planning proposal was generated');
     });
   });
 });

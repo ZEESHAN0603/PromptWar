@@ -81,5 +81,35 @@ describe('Authentication Middleware & Protected Routes', () => {
       expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
     });
+
+    it('should never silently fallback to a demo account for unauthenticated requests', async () => {
+      const endpoints = [
+        '/api/users/me',
+        '/api/events',
+        '/api/vendors/saved',
+        '/api/admin/vendors/pending',
+      ];
+
+      for (const endpoint of endpoints) {
+        const response = await request(app).get(endpoint);
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({
+          success: false,
+          message: expect.stringContaining('required'),
+        });
+      }
+    });
+
+    it('should strictly reject spoofed demo authorization headers without valid Supabase signature', async () => {
+      vi.spyOn(supabaseModule, 'verifySupabaseToken').mockResolvedValueOnce(null);
+
+      const response = await request(app)
+        .get('/api/users/me')
+        .set('Authorization', 'Bearer demo-organizer-spoofed-token');
+
+      expect(response.status).toBe(401);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('Invalid, malformed, or expired authentication token');
+    });
   });
 });

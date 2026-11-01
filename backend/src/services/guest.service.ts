@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
 import { ApiError } from '../utils/ApiError.js';
+import { EventService } from './event.service.js';
 import {
   CreateGuestInput,
   UpdateGuestInput,
@@ -36,6 +37,8 @@ export class GuestService {
         notes: input.notes,
       },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return guest;
   }
@@ -142,6 +145,8 @@ export class GuestService {
       },
     });
 
+    await EventService.touchPlanningRevision(eventId);
+
     return updated;
   }
 
@@ -159,6 +164,8 @@ export class GuestService {
     await prisma.guest.delete({
       where: { id: guestId },
     });
+
+    await EventService.touchPlanningRevision(eventId);
 
     return {
       id: guestId,

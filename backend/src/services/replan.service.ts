@@ -162,14 +162,28 @@ export class ReplanService {
       aiRecommendations = null;
     }
 
-    // Persist proposal into Supabase PostgreSQL
+    // Persist proposal into Supabase PostgreSQL with baseline planning metrics
+    const baseline = {
+      eventUpdatedAt: event.updatedAt.toISOString(),
+      actualExpensesTotal: formattedExpenses.reduce((s, e) => s + (e.actualAmount || 0), 0),
+      actualExpensesCount: formattedExpenses.length,
+      guestCount: guests.length,
+      taskCount: tasks.length,
+      timelineCount: timeline.length,
+    };
+
+    const enrichedImpactReport = {
+      ...impactReport,
+      baseline,
+    };
+
     const proposal = await prisma.eventReplanProposal.create({
       data: {
         eventId,
         userId,
         status: 'READY_FOR_REVIEW',
         proposedChanges: input.changes as any,
-        impactReport: impactReport as any,
+        impactReport: enrichedImpactReport as any,
         aiRecommendations: aiRecommendations as any,
         baseEventUpdatedAt: event.updatedAt,
         reason: input.reason || null,
@@ -262,6 +276,37 @@ export class ReplanService {
 
     // Execute atomic transaction: All operations succeed or entirely rollback
     const result = await prisma.$transaction(async (tx) => {
+      // Step A0: Re-verify proposal and event concurrency inside transaction lock
+      const lockedProposal = await tx.eventReplanProposal.findUnique({
+        where: { id: proposal.id },
+      });
+
+      if (!lockedProposal) {
+        throw ApiError.notFound('Re-planning proposal not found');
+      }
+
+      if (lockedProposal.status === 'APPLIED') {
+        throw ApiError.conflict('This re-planning proposal has already been applied');
+      }
+
+      if (lockedProposal.status === 'REJECTED') {
+        throw ApiError.badRequest('Cannot apply a rejected re-planning proposal');
+      }
+
+      const lockedEvent = await tx.event.findUnique({
+        where: { id: eventId },
+      });
+
+      if (!lockedEvent) {
+        throw ApiError.notFound('Event not found');
+      }
+
+      if (lockedEvent.updatedAt.getTime() > proposal.baseEventUpdatedAt.getTime()) {
+        throw ApiError.conflict(
+          'The celebration was modified after this re-planning proposal was generated. Please review current details and generate a fresh proposal.'
+        );
+      }
+
       // Step A: Capture pre-application state snapshot for version history
       const [currentCategories, currentTasks, currentTimeline, currentExpenses] = await Promise.all([
         tx.budgetCategory.findMany({ where: { eventId } }),
@@ -272,13 +317,13 @@ export class ReplanService {
 
       const preSnapshot = {
         event: {
-          id: event.id,
-          name: event.name,
-          date: event.date.toISOString(),
-          budget: Number(event.budget),
-          guestCount: event.guestCount,
-          location: event.location,
-          status: event.status,
+          id: lockedEvent.id,
+          name: lockedEvent.name,
+          date: lockedEvent.date.toISOString(),
+          budget: Number(lockedEvent.budget),
+          guestCount: lockedEvent.guestCount,
+          location: lockedEvent.location,
+          status: lockedEvent.status,
         },
         budgetCategories: currentCategories.map((c) => ({
           id: c.id,
@@ -309,8 +354,10 @@ export class ReplanService {
       const versionCount = await tx.eventPlanVersion.count({ where: { eventId } });
       const versionNumber = versionCount + 1;
 
-      // Step C: Apply selectively approved core event changes
-      const eventUpdates: Record<string, any> = {};
+      // Step C: Apply selectively approved core event changes and advance planning revision
+      const eventUpdates: Record<string, any> = {
+        updatedAt: new Date(),
+      };
 
       if (approvedChanges.budget && proposedChanges.budget) {
         eventUpdates.budget = proposedChanges.budget.proposed;
@@ -322,13 +369,10 @@ export class ReplanService {
         eventUpdates.date = new Date(proposedChanges.eventDate.proposed);
       }
 
-      let updatedEvent = event;
-      if (Object.keys(eventUpdates).length > 0) {
-        updatedEvent = await tx.event.update({
-          where: { id: eventId },
-          data: eventUpdates,
-        });
-      }
+      const updatedEvent = await tx.event.update({
+        where: { id: eventId },
+        data: eventUpdates,
+      });
 
       // Step D: Apply approved task due date adjustments
       if (approvedTaskChanges && approvedTaskChanges.length > 0) {
