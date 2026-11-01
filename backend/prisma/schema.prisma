@@ -27,6 +27,8 @@ model Profile {
   submittedContributions VendorContribution[] @relation("SubmittedContributions")
   reviewedContributions  VendorContribution[] @relation("ReviewedContributions")
   savedVendors           MyVendor[]
+  replanProposals        EventReplanProposal[]
+  planVersions           EventPlanVersion[]
 
   @@index([role])
   @@map("profiles")
@@ -62,6 +64,10 @@ model Event {
   // Phase 4 Relations
   eventVendors     EventVendor[]
   personalizedIdeas PersonalizedIdea[]
+
+  // Phase 6 Relations
+  replanProposals  EventReplanProposal[]
+  planVersions     EventPlanVersion[]
 
   @@index([userId])
   @@index([status])
@@ -325,4 +331,51 @@ model PersonalizedIdea {
   @@index([category])
   @@index([generationId])
   @@map("personalized_ideas")
+}
+
+/// EventReplanProposal model managing proposal lifecycle, deterministic impact, and AI recommendations
+model EventReplanProposal {
+  id                 String    @id @default(uuid()) @db.Uuid
+  eventId            String    @db.Uuid
+  userId             String    @db.Uuid
+  status             String    @default("READY_FOR_REVIEW") // READY_FOR_REVIEW, APPROVED, APPLIED, REJECTED, EXPIRED, FAILED
+  proposedChanges    Json      // { budget?: { proposed: number }, guestCount?: { proposed: number }, eventDate?: { proposed: string } }
+  impactReport       Json      // Deterministic impact breakdown & conflict analysis
+  aiRecommendations  Json?     // Gemini structured recommendations & trade-offs
+  baseEventUpdatedAt DateTime  // Concurrency reference for stale proposal protection
+  appliedChanges     Json?     // User's selectively approved changes
+  reason             String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  appliedAt          DateTime?
+
+  event    Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     Profile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions EventPlanVersion[]
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@map("event_replan_proposals")
+}
+
+/// EventPlanVersion model capturing immutable event state snapshots
+model EventPlanVersion {
+  id               String   @id @default(uuid()) @db.Uuid
+  eventId          String   @db.Uuid
+  userId           String   @db.Uuid
+  versionNumber    Int      // Sequential version number: 1, 2, 3...
+  snapshot         Json     // Full event state snapshot (budget, guests, date, categories, tasks, timeline)
+  changeSummary    Json     // Detailed summary of approved changes
+  sourceProposalId String?  @db.Uuid
+  createdAt        DateTime @default(now())
+
+  event          Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user           Profile              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceProposal EventReplanProposal? @relation(fields: [sourceProposalId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, versionNumber])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_plan_versions")
 }

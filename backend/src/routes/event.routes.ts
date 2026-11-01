@@ -26,6 +26,7 @@ import {
   toggleSaveIdeaHandler,
   createIdeaHandler,
 } from '../controllers/idea.controller.js';
+import { replanRouter, versionRouter } from './replan.routes.js';
 import { generateIdeasRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 export const eventRouter = Router();
@@ -78,4 +79,8 @@ eventRouter.delete('/:eventId/ideas/:id', deleteIdeaHandler);
 eventRouter.post('/:eventId/ideas', createIdeaHandler);
 eventRouter.patch('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);
 eventRouter.post('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);
+
+// Phase 6: Adaptive Event Re-Planning Engine & Version History
+eventRouter.use('/:eventId/replan', replanRouter);
+eventRouter.use('/:eventId/versions', versionRouter);
 

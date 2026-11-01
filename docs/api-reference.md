@@ -980,5 +980,107 @@ Timeline items represent day-of run-of-show activities and scheduled milestones,
 - **Endpoint**: `/api/events/:eventId/ideas/:id`
 - **Auth Required**: Yes
 
+---
+
+## 9. Phase 6: Adaptive Event Re-Planning Engine & Version History
+
+### 9.1 Generate Re-Planning Proposal
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/replan`
+- **Auth Required**: Yes (`Bearer <token>`)
+- **Description**: Evaluates impact of changes across budget, guest count, and event date deterministically and generates Gemini AI strategic alternatives without altering existing records.
+- **Request Body**:
+```json
+{
+  "changes": {
+    "budget": { "proposed": 700000 },
+    "guestCount": { "proposed": 250 },
+    "eventDate": { "proposed": "2026-12-08T18:00:00Z" }
+  },
+  "reason": "Budget optimization and expanded guest headcount"
+}
+```
+- **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Re-planning proposal generated successfully",
+  "data": {
+    "proposalId": "f9018420-1b2c-4f81-8d2a-20fa92bce811",
+    "eventId": "a9018420-1b2c-4f81-8d2a-20fa92bce811",
+    "status": "READY_FOR_REVIEW",
+    "proposedChanges": { ... },
+    "impactReport": { ... },
+    "aiRecommendations": { ... },
+    "baseEventUpdatedAt": "2026-11-01T14:00:00.000Z",
+    "reason": "Budget optimization and expanded guest headcount",
+    "createdAt": "2026-11-01T14:30:00.000Z"
+  }
+}
+```
+
+### 9.2 Retrieve Re-Planning Proposal
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/replan/:proposalId`
+- **Auth Required**: Yes
+- **Description**: Retrieves proposal and provides `isStale: true` protection if event was modified after proposal creation.
+
+### 9.3 Selectively Apply Approved Proposal
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/replan/:proposalId/apply`
+- **Auth Required**: Yes
+- **Description**: Applies only explicitly approved changes in an atomic Prisma transaction, records pre-change snapshot in `event_plan_versions`, preserves recorded actual expenses, and marks proposal as `APPLIED`.
+- **Request Body**:
+```json
+{
+  "approvedChanges": {
+    "budget": true,
+    "guestCount": true,
+    "eventDate": false
+  },
+  "approvedTaskChanges": [
+    { "taskId": "b9018420-...", "proposedDueDate": "2026-12-01T00:00:00Z" }
+  ],
+  "approvedTimelineChanges": []
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Approved re-planning changes applied successfully",
+  "data": {
+    "event": { ... },
+    "versionNumber": 2,
+    "versionId": "c9018420-...",
+    "appliedChanges": { ... }
+  }
+}
+```
+
+### 9.4 Reject Proposal
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/replan/:proposalId/reject`
+- **Auth Required**: Yes
+- **Description**: Marks proposal status as `REJECTED`.
+
+### 9.5 Retrieve Event Plan Version History
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/versions`
+- **Auth Required**: Yes
+- **Description**: Lists historical plan versions (`v1.0`, `v2.0`...) in descending chronological order.
+
+### 9.6 Retrieve Single Version Snapshot
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/versions/:versionId`
+- **Auth Required**: Yes
+
+### 9.7 Compare Two Plan Versions
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/versions/compare?from=:fromId&to=:toId`
+- **Auth Required**: Yes
+- **Description**: Deterministically compares snapshots between two historical versions or between historical version and current plan.
+
+
 
 

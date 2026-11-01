@@ -444,3 +444,190 @@ export interface TimelineActivityItem {
   updatedAt?: string;
 }
 
+// Phase 6: Adaptive Re-Planning Types
+export interface BackendReplanProposal {
+  proposalId: string;
+  eventId: string;
+  status: 'READY_FOR_REVIEW' | 'APPROVED' | 'APPLIED' | 'REJECTED' | 'EXPIRED' | 'FAILED';
+  proposedChanges: {
+    budget?: { proposed: number };
+    guestCount?: { proposed: number };
+    eventDate?: { proposed: string };
+  };
+  impactReport: {
+    summary: {
+      hasBudgetChange: boolean;
+      hasGuestChange: boolean;
+      hasDateChange: boolean;
+      overallImpactLevel: 'low' | 'moderate' | 'high' | 'critical';
+      totalConflicts: number;
+      totalAdjustmentsRecommended: number;
+    };
+    budgetImpact?: {
+      existingBudget: number;
+      proposedBudget: number;
+      budgetDifference: number;
+      percentageChange: number;
+      totalAllocated: number;
+      totalActualExpenses: number;
+      totalEstimatedExpenses: number;
+      existingRemainingBudget: number;
+      proposedRemainingBudget: number;
+      existingUnallocated: number;
+      proposedUnallocated: number;
+      isDeficit: boolean;
+      deficitAmount: number;
+      isAllocationOverBudget: boolean;
+      allocationOverageAmount: number;
+      categoryDifferences: Array<{
+        categoryId: string;
+        categoryName: string;
+        allocatedAmount: number;
+        actualSpent: number;
+        estimatedTotal: number;
+        variance: number;
+        status: string;
+      }>;
+      conflicts: string[];
+    } | null;
+    guestImpact?: {
+      existingGuestCount: number;
+      proposedGuestCount: number;
+      guestDifference: number;
+      percentageChange: number;
+      confirmedGuestCount: number;
+      totalAttendingHeadcount: number;
+      estimatedPlateCost: number | null;
+      estimatedCateringImpact: number | null;
+      capacityStatus: string;
+      impactedAreas: string[];
+      conflicts: string[];
+    } | null;
+    dateImpact?: {
+      existingEventDate: string;
+      proposedEventDate: string;
+      daysDifference: number;
+      daysRemainingProposed: number;
+      tasksAfterProposedDate: Array<{
+        taskId: string;
+        title: string;
+        dueDate: string;
+        status: string;
+        priority: string;
+      }>;
+      overdueTasks: Array<{
+        taskId: string;
+        title: string;
+        dueDate: string;
+        priority: string;
+      }>;
+      taskDependencyConflicts: Array<{
+        taskId: string;
+        taskTitle: string;
+        prerequisiteTaskId: string;
+        prerequisiteTitle: string;
+        reason: string;
+      }>;
+      timelineConflicts: Array<{
+        timelineItemId: string;
+        title: string;
+        currentStartTime: string;
+        suggestedStartTime: string;
+        reason: string;
+      }>;
+      taskRescheduleSuggestions: Array<{
+        taskId: string;
+        title: string;
+        currentDueDate: string | null;
+        proposedDueDate: string | null;
+        priority: string;
+        status: string;
+        reason: string;
+      }>;
+      conflicts: string[];
+    } | null;
+    impactItems: Array<{
+      id: string;
+      module: string;
+      recordId?: string | null;
+      recordTitle?: string | null;
+      classification: string;
+      severity: string;
+      reason: string;
+      currentValue?: any;
+      proposedValue?: any;
+      recommendedAction: string;
+    }>;
+  };
+  aiRecommendations?: {
+    summary: string;
+    impactLevel: 'low' | 'moderate' | 'high' | 'critical';
+    recommendations: Array<{
+      category: string;
+      title: string;
+      description: string;
+      reason: string;
+      priority: 'low' | 'medium' | 'high' | 'critical';
+      estimatedImpact?: string | number | null;
+      requiresUserApproval: boolean;
+    }>;
+    warnings: string[];
+    alternatives: string[];
+  } | null;
+  baseEventUpdatedAt: string;
+  isStale?: boolean;
+  reason?: string | null;
+  createdAt: string;
+  appliedAt?: string | null;
+}
+
+export interface BackendPlanVersion {
+  id: string;
+  eventId: string;
+  versionNumber: number;
+  versionLabel: string;
+  snapshot: any;
+  changeSummary: any;
+  sourceProposalId?: string | null;
+  createdAt: string;
+}
+
+export interface VersionDifferenceItem {
+  field: string;
+  fromValue: any;
+  toValue: any;
+  difference: any;
+}
+
+export interface VersionComparisonResult {
+  fromVersion: {
+    id: string;
+    versionNumber: number;
+    label: string;
+    createdAt: string;
+  };
+  toVersion: {
+    id: string;
+    versionNumber: number;
+    label: string;
+    createdAt: string;
+  };
+  differences: VersionDifferenceItem[];
+}
+
+export interface ApplyReplanPayload {
+  approvedChanges: {
+    budget: boolean;
+    guestCount: boolean;
+    eventDate: boolean;
+  };
+  approvedTaskChanges?: Array<{
+    taskId: string;
+    proposedDueDate: string;
+  }>;
+  approvedTimelineChanges?: Array<{
+    timelineItemId: string;
+    proposedStartTime: string;
+  }>;
+}
+

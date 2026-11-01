@@ -970,4 +970,78 @@ export const apiClient = {
     );
     return res.data;
   },
+
+  // Phase 6: Adaptive Event Re-Planning Engine
+  async createReplanProposal(
+    eventId: string,
+    data: {
+      changes: {
+        budget?: { proposed: number };
+        guestCount?: { proposed: number };
+        eventDate?: { proposed: string };
+      };
+      reason?: string | null;
+    }
+  ) {
+    const res = await request<any>(`/events/${eventId}/replan`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async getReplanProposal(eventId: string, proposalId: string) {
+    const res = await request<any>(`/events/${eventId}/replan/${proposalId}`);
+    return res.data;
+  },
+
+  async applyReplanProposal(
+    eventId: string,
+    proposalId: string,
+    data: {
+      approvedChanges: {
+        budget: boolean;
+        guestCount: boolean;
+        eventDate: boolean;
+      };
+      approvedTaskChanges?: Array<{
+        taskId: string;
+        proposedDueDate: string;
+      }>;
+      approvedTimelineChanges?: Array<{
+        timelineItemId: string;
+        proposedStartTime: string;
+      }>;
+    }
+  ) {
+    const res = await request<any>(`/events/${eventId}/replan/${proposalId}/apply`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async rejectReplanProposal(eventId: string, proposalId: string) {
+    const res = await request<any>(`/events/${eventId}/replan/${proposalId}/reject`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async getPlanVersions(eventId: string) {
+    const res = await request<{ versions: any[] }>(`/events/${eventId}/versions`);
+    return res.data.versions;
+  },
+
+  async getPlanVersionById(eventId: string, versionId: string) {
+    const res = await request<any>(`/events/${eventId}/versions/${versionId}`);
+    return res.data;
+  },
+
+  async comparePlanVersions(eventId: string, fromVersionId: string, toVersionId: string) {
+    const res = await request<any>(
+      `/events/${eventId}/versions/compare?from=${encodeURIComponent(fromVersionId)}&to=${encodeURIComponent(toVersionId)}`
+    );
+    return res.data;
+  },
 };

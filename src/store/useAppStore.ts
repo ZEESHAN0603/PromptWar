@@ -22,6 +22,10 @@ import {
   MySavedVendor,
   EventVendorRecord,
   RecommendedVendorItem,
+  BackendReplanProposal,
+  BackendPlanVersion,
+  ApplyReplanPayload,
+  VersionComparisonResult,
 } from '../types';
 import {
   INITIAL_WEDDING_EVENT,
@@ -166,6 +170,36 @@ interface AppStoreState {
     eventId: string,
     version: Omit<PlanVersion, 'id' | 'eventId' | 'timestamp' | 'versionNumber'>
   ) => void;
+
+  // Phase 6: Adaptive Re-planning Slice
+  currentReplanProposal: Record<string, BackendReplanProposal | null>;
+  isAnalyzingReplan: boolean;
+  replanError: string | null;
+  serverPlanVersions: Record<string, BackendPlanVersion[]>;
+  isApplyingReplan: boolean;
+  createReplanProposal: (
+    eventId: string,
+    data: {
+      changes: {
+        budget?: { proposed: number };
+        guestCount?: { proposed: number };
+        eventDate?: { proposed: string };
+      };
+      reason?: string | null;
+    }
+  ) => Promise<BackendReplanProposal>;
+  applyReplanProposal: (
+    eventId: string,
+    proposalId: string,
+    payload: ApplyReplanPayload
+  ) => Promise<any>;
+  rejectReplanProposal: (eventId: string, proposalId: string) => Promise<void>;
+  fetchPlanVersions: (eventId: string) => Promise<BackendPlanVersion[]>;
+  comparePlanVersions: (
+    eventId: string,
+    fromVersionId: string,
+    toVersionId: string
+  ) => Promise<VersionComparisonResult>;
 
   // Planning Sync & Phase 3 Slices
   planningLoading: boolean;
@@ -2254,6 +2288,94 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         },
       }));
       persistState();
+    },
+
+    // Phase 6: Adaptive Re-planning Actions
+    currentReplanProposal: {},
+    isAnalyzingReplan: false,
+    replanError: null,
+    serverPlanVersions: {},
+    isApplyingReplan: false,
+
+    createReplanProposal: async (eventId, data) => {
+      set({ isAnalyzingReplan: true, replanError: null });
+      try {
+        const proposal = await apiClient.createReplanProposal(eventId, data);
+        set((s) => ({
+          isAnalyzingReplan: false,
+          currentReplanProposal: {
+            ...s.currentReplanProposal,
+            [eventId]: proposal,
+          },
+        }));
+        return proposal;
+      } catch (err: any) {
+        const message = err.message || 'Failed to analyze re-planning proposal';
+        set({ isAnalyzingReplan: false, replanError: message });
+        throw err;
+      }
+    },
+
+    applyReplanProposal: async (eventId, proposalId, payload) => {
+      set({ isApplyingReplan: true, replanError: null });
+      try {
+        const result = await apiClient.applyReplanProposal(eventId, proposalId, payload);
+        // Refresh full event planning data from backend
+        try {
+          await get().fetchEventPlanningData(eventId);
+        } catch {}
+        try {
+          await get().fetchUserEvents();
+        } catch {}
+        try {
+          await get().fetchPlanVersions(eventId);
+        } catch {}
+        set((s) => ({
+          isApplyingReplan: false,
+          currentReplanProposal: {
+            ...s.currentReplanProposal,
+            [eventId]: null,
+          },
+        }));
+        return result;
+      } catch (err: any) {
+        set({ isApplyingReplan: false, replanError: err.message || 'Failed to apply re-planning changes' });
+        throw err;
+      }
+    },
+
+    rejectReplanProposal: async (eventId, proposalId) => {
+      try {
+        await apiClient.rejectReplanProposal(eventId, proposalId);
+        set((s) => ({
+          currentReplanProposal: {
+            ...s.currentReplanProposal,
+            [eventId]: null,
+          },
+        }));
+      } catch (err: any) {
+        console.warn('Backend rejectReplanProposal error:', err);
+      }
+    },
+
+    fetchPlanVersions: async (eventId) => {
+      try {
+        const versions = await apiClient.getPlanVersions(eventId);
+        set((s) => ({
+          serverPlanVersions: {
+            ...s.serverPlanVersions,
+            [eventId]: versions,
+          },
+        }));
+        return versions;
+      } catch (err: any) {
+        console.warn('Backend getPlanVersions error:', err);
+        return [];
+      }
+    },
+
+    comparePlanVersions: async (eventId, fromVersionId, toVersionId) => {
+      return await apiClient.comparePlanVersions(eventId, fromVersionId, toVersionId);
     },
 
     // Getters
