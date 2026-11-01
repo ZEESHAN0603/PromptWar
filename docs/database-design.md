@@ -24,6 +24,13 @@ erDiagram
     tasks ||--o{ task_dependencies : "target_task (1:N)"
     tasks ||--o{ task_dependencies : "prerequisite (1:N)"
     events ||--o{ timeline_items : "schedules (1:N)"
+    events ||--o{ event_vendors : "hires (1:N)"
+    community_vendors ||--o{ event_vendors : "assigned_to (1:N)"
+    profiles ||--o{ my_vendors : "bookmarks (1:N)"
+    community_vendors ||--o{ my_vendors : "bookmarked (1:N)"
+    profiles ||--o{ vendor_contributions : "submits (1:N)"
+    community_vendors ||--o{ vendor_contributions : "reviewed_under (1:N)"
+    events ||--o{ personalized_ideas : "synthesizes (1:N)"
 
     profiles {
         uuid id PK "References auth.users.id"
@@ -232,6 +239,32 @@ erDiagram
 - **Constraints & Indexes**:
   - `INDEX ("eventId")` — Event timeline lookup.
   - `INDEX ("startTime")` — Chronological ordering.
+
+### 3.7 `personalized_ideas` Table (Phase 5)
+- `id`: UUID (Primary Key, default `gen_random_uuid()`)
+- `eventId`: UUID (Foreign Key references `events.id` ON DELETE CASCADE)
+- `title`: String (Concept title)
+- `description`: String (Practical overview)
+- `category`: String (`theme`, `decoration`, `food`, `entertainment`, `venue`, `guest_experience`)
+- `estimatedBudgetRange`: String (Human-readable cost estimate)
+- `matchReason`: String (Rationale for fitting user celebration profile)
+- `alternatives`: JSONB (Array of budget-friendly alternatives)
+- `isSaved`: Boolean (Bookmarked / Favorite status, default `false`)
+- `tags`: JSONB (Color palette chips / tags)
+- `content`: JSONB (Full structured Gemini payload with tips, palette, and cost objects)
+- `generationId`: String (Batch generation identifier preserving multi-generation history)
+- `createdAt`: Timestamp with time zone (Default `now()`)
+- `updatedAt`: Timestamp with time zone (Auto-updated)
+- **Constraints & Indexes**:
+  - `INDEX ("eventId")` — Fast idea lookup by event.
+  - `INDEX ("category")` — Efficient category filtering.
+  - `INDEX ("generationId")` — Batch retrieval and preservation.
+
+### 3.8 Community Vendor Tables (Phase 4)
+- `community_vendors`: Approved shared vendor directory with pricing metadata, rating, and service areas.
+- `vendor_contributions`: User submissions with moderation review workflow (`pending`, `approved`, `rejected`).
+- `my_vendors`: User private bookmarks of community vendors.
+- `event_vendors`: Event-specific hiring, contact progression, and cost tracking with links to `expenses`.
 
 ---
 

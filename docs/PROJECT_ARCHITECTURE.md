@@ -29,13 +29,14 @@ flowchart TD
 
     subgraph DataLayer ["Data & Auth (Supabase)"]
         SupaAuth["Supabase Auth Engine\n(auth.users)"]
-        PostgresDB[("Supabase PostgreSQL DB\n(profiles, events)")]
+        PostgresDB[("Supabase PostgreSQL DB\n(profiles, events, personalized_ideas)")]
     end
 
-    subgraph AILayer ["AI Microservice (Python)"]
+    subgraph AILayer ["AI & Engine Layer"]
+        GeminiEngine["Google Gemini 2.5 Flash\n(Phase 5 Ideas Engine)"]
         FastAPIApp["FastAPI Service\n(Pydantic v2)\n:8000"]
         AIHealth["Health Probes"]
-        FutureGemini["Google Gemini 2.5 Engine\n(Phases 5-7)"]
+        FutureGemini["Adaptive Re-Planning Models\n(Phases 6-7)"]
     end
 
     WebClient -->|"REST API / HTTPS"| APIGateway
@@ -48,6 +49,7 @@ flowchart TD
     PrismaORM -->|"Supabase Pooler (6543) / Direct (5432)"| PostgresDB
     SupaAuth -->|"User UUID Mapping"| PostgresDB
 
+    APIGateway -->|"@google/genai SDK"| GeminiEngine
     APIGateway -->|"Internal HTTP Requests"| FastAPIApp
     FastAPIApp --> AIHealth
     FastAPIApp -.->|"LLM Reasoning"| FutureGemini

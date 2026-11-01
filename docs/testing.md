@@ -42,11 +42,13 @@ npm run build
 | `backend/tests/guest.test.ts` | Guest creation, validation, RSVP updates, filtering, search, attendee & plus-one headcount aggregation, cross-event isolation | 8 |
 | `backend/tests/task.test.ts` | Task CRUD, status/priority filtering, due date sorting, dependency creation, BFS cycle detection (409), incomplete prerequisite completion blocking (400) | 12 |
 | `backend/tests/timeline.test.ts` | Timeline item CRUD, chronological validation (end >= start), chronological sorting, category & status filtering | 6 |
+| `backend/tests/vendor.test.ts` | Phase 4 vendor discovery, recommendations (0-100 pts), duplicate check, user contributions, bookmarks, and admin moderation | 18 |
+| `backend/tests/idea.test.ts` | Phase 5 Gemini AI celebration ideas generation, strict Zod schema validation, persistence, category filtering, favorites, rate limiting, and error handling | 15 |
 | `backend/tests/health.test.ts` | Foundation healthcheck telemetry, database connectivity checks, degraded 503 handling | 4 |
 | `backend/tests/error-handler.test.ts` | Centralized operational vs unhandled error formatting, Zod schema error mapping, JSON syntax error handling | 6 |
 | `backend/tests/database.test.ts` | Prisma client singleton behavior, healthcheck latency metrics | 3 |
 | `backend/tests/env.test.ts` | Zod environment parsing, fail-fast schema validation, sensitive key masking | 4 |
-| **Total** | **11 Test Suites** | **79** |
+| **Total** | **13 Test Suites** | **112** |
 
 ---
 
@@ -55,25 +57,25 @@ npm run build
 ```
  RUN  v3.2.7 D:/Event Pilot/backend
 
+ ✓ tests/error-handler.test.ts (6 tests)
  ✓ tests/env.test.ts (4 tests)
  ✓ tests/database.test.ts (3 tests)
- ✓ tests/error-handler.test.ts (6 tests)
  ✓ tests/health.test.ts (4 tests)
  ✓ tests/auth.test.ts (6 tests)
- ✓ tests/profile.test.ts (6 tests)
- ✓ tests/events.test.ts (10 tests)
  ✓ tests/timeline.test.ts (6 tests)
+ ✓ tests/profile.test.ts (6 tests)
  ✓ tests/guest.test.ts (8 tests)
+ ✓ tests/events.test.ts (10 tests)
  ✓ tests/task.test.ts (12 tests)
  ✓ tests/budget.test.ts (14 tests)
+ ✓ tests/idea.test.ts (15 tests)
+ ✓ tests/vendor.test.ts (18 tests)
 
- Test Files  11 passed (11)
-      Tests  79 passed (79)
-   Start at  20:07:33
-   Duration  7.18s
+ Test Files  13 passed (13)
+      Tests  112 passed (112)
 ```
 
-All 79 tests passed with a **100% success rate**.
+All 112 tests passed with a **100% success rate**.
 
 ---
 

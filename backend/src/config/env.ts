@@ -2,11 +2,14 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-// Load environment variables from process.cwd() and backend/.env directory
+// Resolve directory robustly across both CommonJS and tsx/runtime environments
+const configDir = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+
+// Load environment variables prioritizing backend/.env, root .env, then process.cwd()
+dotenv.config({ path: path.resolve(configDir, '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config();
-if (typeof __dirname !== 'undefined') {
-  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-}
 
 /**
  * Environment variables schema definition using Zod
@@ -57,6 +60,13 @@ export const envSchema = z.object({
     .string()
     .url('AI_SERVICE_URL must be a valid URL')
     .default('http://localhost:8000'),
+  GEMINI_API_KEY: z
+    .string()
+    .optional()
+    .default(''),
+  GEMINI_MODEL: z
+    .string()
+    .default('gemini-2.5-flash'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -100,6 +110,8 @@ export function getSanitizedEnv(config: EnvConfig): Record<string, string | numb
     SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY ? mask(config.SUPABASE_SERVICE_ROLE_KEY) : '(not configured)',
     JWT_SECRET: mask(config.JWT_SECRET),
     AI_SERVICE_URL: config.AI_SERVICE_URL,
+    GEMINI_API_KEY: mask(config.GEMINI_API_KEY),
+    GEMINI_MODEL: config.GEMINI_MODEL,
   };
 }
 

@@ -845,4 +845,140 @@ Timeline items represent day-of run-of-show activities and scheduled milestones,
 }
 ```
 
+---
+
+## 7. Community Vendor Recommendation System APIs (Phase 4)
+
+### 7.1 Public Vendor Discovery
+- **Method**: `GET`
+- **Endpoint**: `/api/vendors?category=...&city=...&search=...&page=1&limit=20`
+- **Auth Required**: No (Public)
+- **Response (200 OK)**: Returns paginated list of approved community vendors.
+
+### 7.2 Get Vendor Profile
+- **Method**: `GET`
+- **Endpoint**: `/api/vendors/:id`
+- **Auth Required**: No (Public)
+- **Response (200 OK)**: Full vendor profile with service areas, event types, and pricing details.
+
+### 7.3 Real-Time Duplicate Check
+- **Method**: `GET`
+- **Endpoint**: `/api/vendors/check-duplicates?name=...&city=...&category=...`
+- **Auth Required**: No (Public)
+- **Response (200 OK)**: Returns `hasPotentialDuplicate`, `highestConfidence`, and `matches`.
+
+### 7.4 Submit Community Vendor Contribution
+- **Method**: `POST`
+- **Endpoint**: `/api/vendors/contributions`
+- **Auth Required**: Yes
+- **Request Body**: Vendor details, relationship type, source description, private notes, and `consentConfirmed: true`.
+
+### 7.5 Event Vendor Recommendations
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/vendor-recommendations?category=...`
+- **Auth Required**: Yes
+- **Response (200 OK)**: Deterministic 0-100 scored recommendations with transparent factor breakdown.
+
+### 7.6 Event Vendor Team Management
+- **Method**: `GET`, `POST`, `PATCH`, `DELETE`
+- **Endpoint**: `/api/events/:eventId/vendors`
+- **Auth Required**: Yes
+
+---
+
+## 8. Personalized Celebration Ideas Engine APIs (Phase 5)
+
+### 8.1 Generate Personalized Ideas
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/ideas/generate`
+- **Auth Required**: Yes (Event owner or Admin)
+- **Rate Limit**: 10 requests / minute
+- **Request Body**:
+```json
+{
+  "categories": ["theme", "decoration", "food", "entertainment", "venue", "guest_experience"],
+  "preferences": {
+    "preferredColors": ["Royal Crimson", "Antique Gold"],
+    "atmosphere": "Royal Heritage",
+    "venuePreference": "outdoor",
+    "style": "Traditional Rajasthani",
+    "dietaryPreferences": "Pure Vegetarian options",
+    "culturalPreferences": "Marigold & Brass traditional elements",
+    "additionalNotes": "Focus on sunset lawn reception"
+  }
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Generated 2 personalized celebration ideas.",
+  "data": {
+    "generationId": "gen_1761980000000_abc123",
+    "eventContext": {
+      "eventId": "33333333-3333-3333-3333-333333333333",
+      "name": "Royal Heritage Wedding",
+      "type": "Wedding",
+      "budget": 1500000,
+      "guestCount": 200,
+      "currency": "INR"
+    },
+    "ideas": [
+      {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "eventId": "33333333-3333-3333-3333-333333333333",
+        "title": "Rajputana Royal Grandeur",
+        "description": "Intricately carved jharokha backdrops with marigold garlands and royal brass lanterns.",
+        "category": "theme",
+        "estimatedBudgetRange": "INR 80,000 – 1,20,000",
+        "matchReason": "Directly complements your Jaipur heritage celebration and 200 guest count.",
+        "alternatives": ["Warm ambient candlelight with terracotta lamps for INR 45,000"],
+        "tags": ["Royal Crimson", "Antique Gold", "Emerald Green"],
+        "content": {
+          "title": "Rajputana Royal Grandeur",
+          "colorPalette": ["Royal Crimson", "Antique Gold", "Emerald Green"],
+          "estimatedCost": { "min": 80000, "max": 120000, "currency": "INR", "basis": "Estimated decor range" },
+          "budgetSuitability": "Fits comfortably within budget",
+          "implementationTips": ["Rent vintage brass urlis from local Johari Bazaar vendors"]
+        },
+        "generationId": "gen_1761980000000_abc123",
+        "isSaved": false,
+        "createdAt": "2026-11-01T12:00:00.000Z"
+      }
+    ],
+    "totalGenerated": 1
+  }
+}
+```
+
+### 8.2 List Event Ideas
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/ideas?category=...&generationId=...`
+- **Auth Required**: Yes
+- **Query Parameters**:
+  - `category` (optional): `theme`, `decoration`, `food`, `entertainment`, `venue`, `guest_experience`, `saved`, `all`
+  - `generationId` (optional): Filter ideas by generation batch
+- **Response (200 OK)**: Array of persisted celebration ideas.
+
+### 8.3 Get Single Idea
+- **Method**: `GET`
+- **Endpoint**: `/api/events/:eventId/ideas/:id`
+- **Auth Required**: Yes
+
+### 8.4 Save Idea to Favorites
+- **Method**: `POST`
+- **Endpoint**: `/api/events/:eventId/ideas/:id/save`
+- **Auth Required**: Yes
+
+### 8.5 Remove Idea from Favorites
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/ideas/:id/save`
+- **Auth Required**: Yes
+
+### 8.6 Delete Idea
+- **Method**: `DELETE`
+- **Endpoint**: `/api/events/:eventId/ideas/:id`
+- **Auth Required**: Yes
+
+
 

@@ -281,12 +281,18 @@ export interface IdeaItem {
   eventId: string;
   title: string;
   description: string;
-  category: 'themes' | 'decor' | 'food' | 'entertainment' | 'activities' | 'photography' | 'venue';
+  category: string;
   estimatedBudgetRange: string;
   matchReason: string;
   alternatives: string[];
   isSaved: boolean;
   tags: string[];
+  content?: any;
+  generationId?: string;
+  colorPalette?: string[];
+  implementationTips?: string[];
+  budgetSuitability?: string;
+  createdAt?: string;
 }
 
 export interface AIMessage {

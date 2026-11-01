@@ -314,6 +314,8 @@ model PersonalizedIdea {
   alternatives         Json?    // list of alternatives as JSON string array
   isSaved              Boolean  @default(false)
   tags                 Json?    // tags as JSON string array
+  content              Json?    // full structured AI payload (colorPalette, tips, budgetSuitability, cost breakdown)
+  generationId         String?  // batch generation identifier to track and preserve multiple generations
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -321,5 +323,6 @@ model PersonalizedIdea {
 
   @@index([eventId])
   @@index([category])
+  @@index([generationId])
   @@map("personalized_ideas")
 }

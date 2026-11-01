@@ -65,21 +65,27 @@ flowchart LR
 
 ---
 
-### ⏳ Phase 4: Community Vendor Recommendation System
-**Status**: **PLANNED**
-- [ ] Community vendor directory schema (`CommunityVendor`) with moderation status flags.
-- [ ] Private event vendor shortlist (`UserEventVendor`) with quotation tracking.
-- [ ] City, category, and budget-range filtering and search APIs.
-- [ ] Vendor quotation comparison service.
+### ✅ Phase 4: Community Vendor Recommendation System
+**Status**: **COMPLETED**
+- [x] Community vendor directory schema (`CommunityVendor`) with moderation status flags.
+- [x] Vendor contribution auditing model (`VendorContribution`) and role checks (`Profile.role`).
+- [x] Customer saved vendor bookmarks (`MyVendor`).
+- [x] Event workspace vendor team assignments (`EventVendor`) with quotation & progress tracking.
+- [x] City, category, and budget-range filtering and search APIs (`GET /api/vendors`).
+- [x] Real-time duplicate detection (`GET /api/vendors/check-duplicates`).
+- [x] Deterministic 0-100 recommendation engine (`GET /api/events/:eventId/vendor-recommendations`).
 
 ---
 
-### ⏳ Phase 5: Personalized Ideas AI
-**Status**: **PLANNED**
-- [ ] Internal backend proxy to Python AI service (`/ai-service/api/v1/ideas`).
-- [ ] Google Gemini 2.5 API integration for personalized theme, decor, food, and music concepts.
-- [ ] Cultural and dietary context prompt engineering.
-- [ ] Idea bookmarking and event integration.
+### ✅ Phase 5: Personalized Ideas AI (Gemini Engine)
+**Status**: **COMPLETED**
+- [x] Official `@google/genai` SDK integration server-side using `gemini-2.5-flash`.
+- [x] Context-aware celebration prompt builder using actual event details from Supabase.
+- [x] Strict Zod schemas for AI response validation (`geminiCelebrationIdeasResponseSchema`).
+- [x] Extended `personalized_ideas` model with `content` (JSONB) and `generationId` (TEXT) for multi-generation preservation.
+- [x] Rate limiting middleware on idea generation endpoints.
+- [x] Full REST API surface: generation, single fetch, category filtering, favorites save/unsave, deletion.
+- [x] Deep integration with Approved Community Vendors and Task Creation with user confirmation.
 
 ---
 

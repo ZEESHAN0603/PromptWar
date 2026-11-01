@@ -17,10 +17,16 @@ import {
   deleteEventVendorHandler,
 } from '../controllers/vendor.controller.js';
 import {
+  generateIdeasHandler,
   getEventIdeasHandler,
+  getIdeaByIdHandler,
+  saveIdeaHandler,
+  removeSavedIdeaHandler,
+  deleteIdeaHandler,
   toggleSaveIdeaHandler,
   createIdeaHandler,
 } from '../controllers/idea.controller.js';
+import { generateIdeasRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 export const eventRouter = Router();
 
@@ -62,8 +68,13 @@ eventRouter.post('/:eventId/vendors', addEventVendorHandler);
 eventRouter.patch('/:eventId/vendors/:id', updateEventVendorHandler);
 eventRouter.delete('/:eventId/vendors/:id', deleteEventVendorHandler);
 
-// Personalized Ideas
+// Phase 5: Personalized Celebration Ideas Engine
+eventRouter.post('/:eventId/ideas/generate', generateIdeasRateLimiter, generateIdeasHandler);
 eventRouter.get('/:eventId/ideas', getEventIdeasHandler);
+eventRouter.get('/:eventId/ideas/:id', getIdeaByIdHandler);
+eventRouter.post('/:eventId/ideas/:id/save', saveIdeaHandler);
+eventRouter.delete('/:eventId/ideas/:id/save', removeSavedIdeaHandler);
+eventRouter.delete('/:eventId/ideas/:id', deleteIdeaHandler);
 eventRouter.post('/:eventId/ideas', createIdeaHandler);
 eventRouter.patch('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);
 eventRouter.post('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);

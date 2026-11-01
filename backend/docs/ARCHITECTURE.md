@@ -10,12 +10,12 @@ flowchart TD
     Backend["Node.js Express Backend\n(:5000)"]
     Database[("Supabase PostgreSQL\n(Auth & Data)")]
     AIService["Python FastAPI AI Service\n(:8000)"]
-    Gemini["Google Gemini API\n(Future Phases)"]
+    Gemini["Google Gemini 2.5 Flash API\n(Phase 5 Engine)"]
 
     Client -->|"REST API (JSON / CORS)"| Backend
     Backend -->|"Prisma ORM"| Database
-    Backend -->|"Internal HTTP Requests"| AIService
-    AIService -.->|"Future LLM Reasoning"| Gemini
+    Backend -->|"@google/genai SDK"| Gemini
+    Backend -.->|"Internal HTTP Requests"| AIService
 ```
 
 ---

@@ -15,12 +15,22 @@ Testing is an essential quality gate in EventPilot AI. Both the Node.js backend 
 ### Test Directory Layout
 ```
 backend/tests/
-├── app.test.ts             # Express app lifecycle & middleware wiring
-├── health.test.ts          # /api/health, /api/health/db, /api/health/detailed
-├── env.test.ts             # Zod schema validation & secret masking
+├── auth.test.ts            # Supabase JWT token parsing & Bearer auth guards
+├── budget.test.ts          # Budget categories, expense allocations & variance
 ├── database.test.ts        # Prisma client lifecycle & error handling
-└── error-handler.test.ts   # Centralized error response formats & 404
+├── env.test.ts             # Zod schema validation & secret masking
+├── error-handler.test.ts   # Centralized error response formats & 404
+├── events.test.ts          # Event CRUD, tenant isolation & pagination
+├── guest.test.ts           # Guest management, RSVP tracking & headcount
+├── health.test.ts          # /api/health, /api/health/db, /api/health/detailed
+├── idea.test.ts            # Phase 5 Gemini generation, persistence & favorites (15 tests)
+├── profile.test.ts         # User profile lookup & update
+├── task.test.ts            # Tasks, priorities & BFS cycle-detected dependencies
+├── timeline.test.ts        # Run-of-show milestones & chronological ordering
+└── vendor.test.ts          # Community vendor discovery, recommendations & admin moderation
 ```
+
+**Total Backend Test Coverage**: 13 test files, **112/112 passing tests** (100% pass rate).
 
 ### Running Tests
 ```bash

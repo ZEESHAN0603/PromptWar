@@ -88,6 +88,33 @@ Stores events and celebrations created by users.
 
 ---
 
+### 3. `personalized_ideas` Table (Phase 5)
+Stores AI-synthesized celebration ideas from Google Gemini.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `UUID` | `PRIMARY KEY, DEFAULT gen_random_uuid()` | Unique idea identifier. |
+| `eventId` | `UUID` | `FOREIGN KEY (public.events.id) ON DELETE CASCADE` | Associated event. |
+| `title` | `VARCHAR(255)` | `NOT NULL` | Concept title. |
+| `description` | `TEXT` | `NOT NULL` | Practical overview. |
+| `category` | `VARCHAR(100)` | `NOT NULL` | `theme`, `decoration`, `food`, `entertainment`, `venue`, `guest_experience` |
+| `estimatedBudgetRange` | `VARCHAR(100)` | `NOT NULL` | Formatted estimated cost range. |
+| `matchReason` | `TEXT` | `NOT NULL` | Personalization rationale. |
+| `alternatives` | `JSONB` | `DEFAULT '[]'::jsonb` | Budget alternatives. |
+| `isSaved` | `BOOLEAN` | `NOT NULL, DEFAULT false` | Saved favorite flag. |
+| `tags` | `JSONB` | `DEFAULT '[]'::jsonb` | Suggested color palette chips. |
+| `content` | `JSONB` | `NULLABLE` | Full structured AI payload with tips, palette, and cost objects. |
+| `generationId` | `TEXT` | `NULLABLE` | Batch generation identifier. |
+| `createdAt` | `TIMESTAMPTZ` | `NOT NULL, DEFAULT now()` | Creation timestamp. |
+| `updatedAt` | `TIMESTAMPTZ` | `NOT NULL` | Auto-updating timestamp. |
+
+#### Database Indexes
+- `idx_personalized_ideas_eventId` ON `personalized_ideas(eventId)`
+- `idx_personalized_ideas_category` ON `personalized_ideas(category)`
+- `idx_personalized_ideas_generationId` ON `personalized_ideas(generationId)`
+
+---
+
 ## Supabase Auth Integration
 
 1. **Authentication Authority**: Supabase Auth handles password management, OAuth providers, MFA, session refresh tokens, and JWT issuance.

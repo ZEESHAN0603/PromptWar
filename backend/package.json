@@ -19,6 +19,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@google/genai": "^2.4.0",
     "@prisma/client": "^6.4.1",
     "@supabase/supabase-js": "^2.118.0",
     "cors": "^2.8.5",

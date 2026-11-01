@@ -157,6 +157,100 @@ Provides combined telemetry including service uptime, version, and database heal
 }
 ```
 
+---
+
+## 4. Phase 5: Personalized Celebration Ideas Engine
+
+### `POST /api/events/:eventId/ideas/generate`
+Generates personalized celebration ideas tailored to the verified event and user preferences using Google Gemini AI, validates output with strict Zod schemas, and persists concepts into Supabase.
+
+- **Method**: `POST`
+- **Path**: `/api/events/:eventId/ideas/generate`
+- **Authentication**: `Bearer <token>` (Event owner or Admin required)
+- **Rate Limit**: 10 requests / minute per user/IP
+
+#### Request Payload
+```json
+{
+  "categories": ["theme", "decoration", "food", "entertainment", "venue", "guest_experience"],
+  "preferences": {
+    "preferredColors": ["Royal Crimson", "Antique Gold"],
+    "atmosphere": "Royal Heritage",
+    "venuePreference": "outdoor",
+    "style": "Traditional Rajasthani",
+    "dietaryPreferences": "Pure Vegetarian options",
+    "culturalPreferences": "Marigold & Brass traditional elements",
+    "additionalNotes": "Focus on sunset lawn reception"
+  }
+}
+```
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Generated 2 personalized celebration ideas.",
+  "data": {
+    "generationId": "gen_1761980000000_abc123",
+    "eventContext": {
+      "eventId": "33333333-3333-3333-3333-333333333333",
+      "name": "Royal Heritage Wedding",
+      "type": "Wedding",
+      "budget": 1500000,
+      "guestCount": 200,
+      "currency": "INR"
+    },
+    "ideas": [
+      {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "eventId": "33333333-3333-3333-3333-333333333333",
+        "title": "Rajputana Royal Grandeur",
+        "description": "Intricately carved jharokha backdrops with marigold garlands and royal brass lanterns.",
+        "category": "theme",
+        "estimatedBudgetRange": "INR 80,000 – 1,20,000",
+        "matchReason": "Directly complements your Jaipur heritage celebration and 200 guest count.",
+        "alternatives": ["Warm ambient candlelight with terracotta lamps for INR 45,000"],
+        "tags": ["Royal Crimson", "Antique Gold", "Emerald Green"],
+        "content": {
+          "title": "Rajputana Royal Grandeur",
+          "colorPalette": ["Royal Crimson", "Antique Gold", "Emerald Green"],
+          "estimatedCost": { "min": 80000, "max": 120000, "currency": "INR", "basis": "Estimated decor range" },
+          "budgetSuitability": "Fits comfortably within budget",
+          "implementationTips": ["Rent vintage brass urlis from local Johari Bazaar vendors"]
+        },
+        "generationId": "gen_1761980000000_abc123",
+        "isSaved": false,
+        "createdAt": "2026-11-01T12:00:00.000Z"
+      }
+    ],
+    "totalGenerated": 1
+  }
+}
+```
+
+### `GET /api/events/:eventId/ideas`
+Retrieves all generated celebration ideas for the specified event, with optional category filtering.
+
+- **Method**: `GET`
+- **Path**: `/api/events/:eventId/ideas`
+- **Query Parameters**:
+  - `category` (optional): Filter by category (e.g. `theme`, `decoration`, `food`, `saved`, `all`)
+  - `generationId` (optional): Filter ideas by generation run
+
+### `GET /api/events/:eventId/ideas/:id`
+Retrieves single personalized idea by ID with ownership verification.
+
+### `POST /api/events/:eventId/ideas/:id/save`
+Marks an idea as a saved favorite (`isSaved = true`).
+
+### `DELETE /api/events/:eventId/ideas/:id/save`
+Removes an idea from saved favorites (`isSaved = false`).
+
+### `DELETE /api/events/:eventId/ideas/:id`
+Permanently deletes an idea with event ownership verification.
+
+---
+
 ### Internal Server Error (`500 Internal Server Error`)
 ```json
 {

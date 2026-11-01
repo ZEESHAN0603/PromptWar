@@ -49,12 +49,12 @@ flowchart TD
     Backend["Node.js Express Backend\n(:5000)"]
     Database[("Supabase PostgreSQL\n(Auth & Data)")]
     AIService["Python FastAPI AI Service\n(:8000)"]
-    Gemini["Google Gemini API\n(Future Phases)"]
+    Gemini["Google Gemini 2.5 API\n(Phase 5 Engine)"]
 
     Client -->|"REST API / JSON"| Backend
     Backend -->|"Prisma ORM"| Database
-    Backend -->|"Internal HTTP Requests"| AIService
-    AIService -.->|"Future LLM Pipelines"| Gemini
+    Backend -->|"@google/genai SDK"| Gemini
+    Backend -.->|"Internal HTTP Requests"| AIService
 ```
 
 ---
@@ -81,7 +81,7 @@ EventPilot-AI/
 │   │   ├── utils/          # Standard ApiResponse, ApiError, route param helpers
 │   │   ├── app.ts          # Express application factory (decoupled for testing)
 │   │   └── server.ts       # Server listener with graceful shutdown
-│   ├── tests/              # Vitest + Supertest integration tests (11 suites, 79 tests)
+│   ├── tests/              # Vitest + Supertest integration tests (13 suites, 112 tests)
 │   ├── docs/               # In-depth backend documentation
 │   ├── .env.example        # Backend environment template
 │   ├── .gitignore          # Backend git ignore rules
@@ -203,14 +203,16 @@ Tests:
 - Guest management, RSVP tracking, and plus-one headcount aggregation
 - Task management, due date sorting, and BFS dependency cycle detection
 - Event timeline run-of-show and chronological validation
-- **Status: 11 test files, 79/79 passing tests (100% pass rate)**
+- Community vendor recommendation, duplicate check, and contributions
+- AI celebration idea synthesis with Gemini, category filtering, and favorite persistence
+- **Status: 13 test files, 112/112 passing tests (100% pass rate)**
 
 ### Python AI Service Tests (pytest)
 ```bash
 cd ai-service
 python -m pytest tests/ -v
 ```
-Tests application initialization, `/health` response structure, 404 routing, and configuration constraints.
+Tests application initialization, `/health` response structure, 404 routing, and configuration constraints (**4/4 passing tests**).
 
 ### Frontend Quality Check
 ```bash
@@ -225,6 +227,7 @@ npm run build
 - **Prisma Error P1012**: Ensure `DATABASE_URL` and `DIRECT_URL` are set in `backend/.env`.
 - **Database 503 on `/api/health/db`**: Verify Supabase connection string and project status.
 - **Port Conflict**: Modify `PORT` in `backend/.env` or `ai-service/.env`.
+- **Gemini API Error**: Ensure `GEMINI_API_KEY` is configured in `backend/.env` for Phase 5 idea generation.
 
 ---
 
@@ -235,8 +238,8 @@ npm run build
 | **Phase 1** | **Backend Foundation, Supabase/Prisma Setup, AI Scaffold, Tests & Docs** | **✅ Completed** |
 | **Phase 2** | **Authentication, User Profiles & Event Management CRUD** | **✅ Completed** |
 | **Phase 3** | **Event Planning: Budget, Expenses, Guests, Tasks & Timeline** | **✅ Completed** |
-| Phase 4 | Community Vendor Recommendation System | ⏳ Planned |
-| Phase 5 | Personalized Ideas AI (Gemini Integration) | ⏳ Planned |
+| **Phase 4** | **Community Vendor Recommendation System & Moderation** | **✅ Completed** |
+| **Phase 5** | **Personalized Celebration Ideas AI (Google Gemini 2.5 Integration)** | **✅ Completed** |
 | Phase 6 | Adaptive Re-Planning Engine | ⏳ Planned |
 | Phase 7 | AI Co-Pilot (Interactive Assistance) | ⏳ Planned |
 
@@ -244,47 +247,44 @@ For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMA
 
 ---
 
-## 11. Phase 3 Planning Features & Endpoints
+## 11. Implemented Features & Core API Surface
 
-### Budget & Expense Management APIs
-- `POST /api/events/:eventId/budget/categories` — Create budget category
-- `GET /api/events/:eventId/budget/categories` — List budget categories
-- `PATCH /api/events/:eventId/budget/categories/:categoryId` — Update budget category
-- `DELETE /api/events/:eventId/budget/categories/:categoryId` — Delete category (safely unassigns expenses)
-- `POST /api/events/:eventId/budget/expenses` — Create expense voucher
-- `GET /api/events/:eventId/budget/expenses` — List expenses with category/status filters
-- `PATCH /api/events/:eventId/budget/expenses/:expenseId` — Update expense
-- `DELETE /api/events/:eventId/budget/expenses/:expenseId` — Delete expense
-- `GET /api/events/:eventId/budget/summary` — Deterministic budget calculations, variance, & warning alerts
+### Phase 5: Personalized Ideas AI (Gemini Engine)
+- `POST /api/events/:eventId/ideas/generate` — Synthesize personalized celebration concepts via Gemini with rate limiting & Zod validation
+- `GET /api/events/:eventId/ideas` — Retrieve celebration ideas with category & saved filters
+- `GET /api/events/:eventId/ideas/:id` — Retrieve single personalized concept
+- `POST /api/events/:eventId/ideas/:id/save` — Save idea to favorites
+- `DELETE /api/events/:eventId/ideas/:id/save` — Remove idea from favorites
+- `DELETE /api/events/:eventId/ideas/:id` — Delete celebration idea with ownership verification
+- `PATCH /api/events/:eventId/ideas/:id/toggle-save` — Toggle saved status (backward compatibility)
 
-### Guest Management APIs
-- `POST /api/events/:eventId/guests` — Add attendee
-- `GET /api/events/:eventId/guests` — List attendees with search & filters
-- `PATCH /api/events/:eventId/guests/:guestId` — Update guest & RSVP status
-- `DELETE /api/events/:eventId/guests/:guestId` — Delete guest
-- `GET /api/events/:eventId/guests/summary/stats` — Attendee & plus-one headcount aggregation
+### Phase 4: Community Vendor Recommendation System
+- `GET /api/vendors` — Public discovery of approved community vendors
+- `GET /api/vendors/:id` — Vendor details by UUID
+- `GET /api/vendors/check-duplicates` — Duplicate vendor prevention
+- `POST /api/vendors/contributions` — Submit community vendor contribution with consent validation
+- `GET /api/users/me/saved-vendors` — User's saved vendor bookmarks
+- `GET /api/events/:eventId/vendor-recommendations` — Transparent deterministic recommendation engine (0-100 pts)
+- `GET, POST, PATCH, DELETE /api/events/:eventId/vendors` — Event vendor workspace team assignments
 
-### Task Management & Dependency APIs
-- `POST /api/events/:eventId/tasks` — Create planning task
-- `GET /api/events/:eventId/tasks` — List tasks with status/priority filters & sorting
-- `PATCH /api/events/:eventId/tasks/:taskId` — Update task (guards against incomplete prerequisites)
-- `DELETE /api/events/:eventId/tasks/:taskId` — Delete task & cascade dependency edges
-- `POST /api/events/:eventId/tasks/:taskId/dependencies` — Add task dependency with BFS cycle detection
-- `DELETE /api/events/:eventId/tasks/:taskId/dependencies/:dependsOnTaskId` — Remove dependency
-
-### Event Run-of-Show Timeline APIs
-- `POST /api/events/:eventId/timeline` — Create milestone (validates `endTime >= startTime`)
-- `GET /api/events/:eventId/timeline` — List timeline items sorted chronologically
-- `PATCH /api/events/:eventId/timeline/:itemId` — Update milestone
-- `DELETE /api/events/:eventId/timeline/:itemId` — Delete milestone
+### Phase 3: Budget, Expenses, Guests, Tasks & Timeline
+- `POST, GET, PATCH, DELETE /api/events/:eventId/budget/categories` — Budget category allocations
+- `POST, GET, PATCH, DELETE /api/events/:eventId/budget/expenses` — Expense voucher tracking
+- `GET /api/events/:eventId/budget/summary` — Budget health, utilization, variance, and warning alerts
+- `POST, GET, PATCH, DELETE /api/events/:eventId/guests` — Guest list & RSVP management
+- `GET /api/events/:eventId/guests/summary/stats` — Attendee & plus-one aggregation
+- `POST, GET, PATCH, DELETE /api/events/:eventId/tasks` — Tasks with BFS cycle-detected dependencies
+- `POST, GET, PATCH, DELETE /api/events/:eventId/timeline` — Chronological run-of-show milestones
 
 ---
 
 ## 12. Documentation Links
+- [`docs/phase-5-completion.md`](docs/phase-5-completion.md) — Phase 5 completion report (Personalized Ideas Engine)
+- [`docs/phase-4-completion.md`](docs/phase-4-completion.md) — Phase 4 completion report (Vendor System)
+- [`docs/phase-3-completion.md`](docs/phase-3-completion.md) — Phase 3 completion report (Event Planning)
+- [`docs/phase-2-completion.md`](docs/phase-2-completion.md) — Phase 2 completion report (Auth & Events)
 - [`docs/architecture.md`](docs/architecture.md) — System architecture & request flow
-- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference (Phases 1-3)
+- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference (Phases 1-5)
 - [`docs/database-design.md`](docs/database-design.md) — Database schema, ER diagram, and indexes
 - [`docs/authentication.md`](docs/authentication.md) — Supabase Auth and JWT verification
-- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports (79 tests)
-- [`docs/phase-3-completion.md`](docs/phase-3-completion.md) — Phase 3 completion report
-- [`docs/phase-2-completion.md`](docs/phase-2-completion.md) — Phase 2 completion report
+- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports (112 tests)

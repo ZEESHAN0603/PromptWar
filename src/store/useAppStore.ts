@@ -141,8 +141,19 @@ interface AppStoreState {
   ideas: Record<string, IdeaItem[]>; // Keyed by eventId
   ideasLoading: boolean;
   ideasError: string | null;
+  isGeneratingIdeas: boolean;
   fetchEventIdeas: (eventId: string, category?: string) => Promise<void>;
+  generateEventIdeas: (
+    eventId: string,
+    data: {
+      categories: string[];
+      preferences?: any;
+    }
+  ) => Promise<any>;
   toggleSaveIdea: (eventId: string, id: string) => Promise<void>;
+  saveIdea: (eventId: string, id: string) => Promise<void>;
+  removeSavedIdea: (eventId: string, id: string) => Promise<void>;
+  deleteIdea: (eventId: string, id: string) => Promise<void>;
 
   // AI Assistant Slice
   aiMessages: Record<string, AIMessage[]>; // Keyed by eventId
@@ -2070,6 +2081,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     ideas: persisted?.ideas || { 'evt-wedding-01': INITIAL_IDEAS },
     ideasLoading: false,
     ideasError: null,
+    isGeneratingIdeas: false,
     fetchEventIdeas: async (eventId: string, category?: string) => {
       if (!eventId) return;
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
@@ -2093,6 +2105,30 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         set({ ideasLoading: false });
       }
     },
+    generateEventIdeas: async (eventId, data) => {
+      if (!eventId) return;
+      set({ isGeneratingIdeas: true, ideasError: null });
+      try {
+        const res = await apiClient.generateEventIdeas(eventId, data);
+        if (res?.ideas) {
+          // Prepend newly generated ideas so they appear at the top, preserving previous generations
+          set((s) => ({
+            ideas: {
+              ...s.ideas,
+              [eventId]: [...res.ideas, ...(s.ideas[eventId] || []).filter((old) => !res.ideas.some((n: any) => n.id === old.id))],
+            },
+          }));
+          persistState();
+        }
+        return res;
+      } catch (err: any) {
+        console.error('generateEventIdeas error:', err);
+        set({ ideasError: err.message || 'Failed to generate celebration ideas' });
+        throw err;
+      } finally {
+        set({ isGeneratingIdeas: false });
+      }
+    },
     toggleSaveIdea: async (eventId, id) => {
       set((s) => ({
         ideas: {
@@ -2110,6 +2146,64 @@ export const useAppStore = create<AppStoreState>((set, get) => {
           await apiClient.toggleSaveIdea(eventId, id);
         } catch (err: any) {
           console.warn('Backend toggleSaveIdea error:', err);
+        }
+      }
+    },
+    saveIdea: async (eventId, id) => {
+      set((s) => ({
+        ideas: {
+          ...s.ideas,
+          [eventId]: (s.ideas[eventId] || []).map((idea) =>
+            idea.id === id ? { ...idea, isSaved: true } : idea
+          ),
+        },
+      }));
+      persistState();
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (isUuid) {
+        try {
+          await apiClient.saveEventIdea(eventId, id);
+        } catch (err: any) {
+          console.warn('Backend saveIdea error:', err);
+        }
+      }
+    },
+    removeSavedIdea: async (eventId, id) => {
+      set((s) => ({
+        ideas: {
+          ...s.ideas,
+          [eventId]: (s.ideas[eventId] || []).map((idea) =>
+            idea.id === id ? { ...idea, isSaved: false } : idea
+          ),
+        },
+      }));
+      persistState();
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (isUuid) {
+        try {
+          await apiClient.removeSavedEventIdea(eventId, id);
+        } catch (err: any) {
+          console.warn('Backend removeSavedIdea error:', err);
+        }
+      }
+    },
+    deleteIdea: async (eventId, id) => {
+      set((s) => ({
+        ideas: {
+          ...s.ideas,
+          [eventId]: (s.ideas[eventId] || []).filter((idea) => idea.id !== id),
+        },
+      }));
+      persistState();
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (isUuid) {
+        try {
+          await apiClient.deleteEventIdea(eventId, id);
+        } catch (err: any) {
+          console.warn('Backend deleteIdea error:', err);
         }
       }
     },

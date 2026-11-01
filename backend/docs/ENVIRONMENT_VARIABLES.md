@@ -14,6 +14,8 @@ This document details all environment variables used by the Express TypeScript b
 | `SUPABASE_SERVICE_ROLE_KEY` | Optional | None | Supabase administrative service role secret (backend only, never expose). |
 | `JWT_SECRET` | **Required** | Safe Dev Secret | Minimum 16-character secret used to verify Supabase JWT tokens. |
 | `AI_SERVICE_URL` | Optional | `http://localhost:8000` | Internal URL for the Python FastAPI microservice. |
+| `GEMINI_API_KEY` | Optional / Recommended | `""` | Google Gemini API Key (server-side only, never expose to frontend). |
+| `GEMINI_MODEL` | Optional | `gemini-2.5-flash` | Gemini model name for idea synthesis (e.g. `gemini-2.5-flash`). |
 
 ---
 

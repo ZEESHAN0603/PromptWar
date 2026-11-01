@@ -887,14 +887,68 @@ export const apiClient = {
     return res.data;
   },
 
-  // Phase 4: Personalized Ideas
-  async getEventIdeas(eventId: string, params?: { category?: string }) {
+  // Phase 5: Personalized Celebration Ideas Engine
+  async generateEventIdeas(
+    eventId: string,
+    data: {
+      categories: string[];
+      preferences?: {
+        preferredColors?: string[];
+        atmosphere?: string;
+        venuePreference?: string;
+        style?: string;
+        dietaryPreferences?: string;
+        culturalPreferences?: string;
+        additionalNotes?: string;
+      };
+    }
+  ) {
+    const res = await request<{
+      generationId: string;
+      eventContext: any;
+      ideas: any[];
+      totalGenerated: number;
+    }>(`/events/${eventId}/ideas/generate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async getEventIdeas(eventId: string, params?: { category?: string; generationId?: string }) {
     const query = new URLSearchParams();
     if (params?.category && params.category !== 'all') query.set('category', params.category);
+    if (params?.generationId) query.set('generationId', params.generationId);
     const queryString = query.toString();
     const res = await request<{ ideas: any[] }>(
       `/events/${eventId}/ideas${queryString ? `?${queryString}` : ''}`
     );
+    return res.data;
+  },
+
+  async getEventIdeaById(eventId: string, ideaId: string) {
+    const res = await request<{ idea: any }>(`/events/${eventId}/ideas/${ideaId}`);
+    return res.data;
+  },
+
+  async saveEventIdea(eventId: string, ideaId: string) {
+    const res = await request<{ idea: any }>(`/events/${eventId}/ideas/${ideaId}/save`, {
+      method: 'POST',
+    });
+    return res.data;
+  },
+
+  async removeSavedEventIdea(eventId: string, ideaId: string) {
+    const res = await request<{ idea: any }>(`/events/${eventId}/ideas/${ideaId}/save`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  },
+
+  async deleteEventIdea(eventId: string, ideaId: string) {
+    const res = await request<{ id: string; deleted: boolean }>(`/events/${eventId}/ideas/${ideaId}`, {
+      method: 'DELETE',
+    });
     return res.data;
   },
 
