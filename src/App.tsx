@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAppStore } from './store/useAppStore';
 import { AppLayout } from './components/layout/AppLayout';
 import { AdaptivePlanningModal } from './components/adaptive/AdaptivePlanningModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -76,7 +77,9 @@ export default function App() {
           path="/app"
           element={
             <ProtectedRoute>
-              <AppLayout onOpenAdaptiveModal={handleOpenAdaptiveModal} />
+              <ErrorBoundary>
+                <AppLayout onOpenAdaptiveModal={handleOpenAdaptiveModal} />
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         >
@@ -85,6 +88,9 @@ export default function App() {
 
           {/* Event Creation Wizard */}
           <Route path="events/new" element={<EventWizardPage />} />
+
+          {/* Community Recommended Vendors Directory */}
+          <Route path="vendors" element={<VendorPage onOpenAdaptiveModal={handleOpenAdaptiveModal} />} />
 
           {/* Event Workspace Routes */}
           <Route

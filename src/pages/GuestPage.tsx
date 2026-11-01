@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   Users,
   Plus,
@@ -26,7 +26,11 @@ interface GuestPageProps {
 }
 
 export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => {
+  const { eventId: routeEventId } = useParams<{ eventId: string }>();
   const {
+    events,
+    currentEventId,
+    selectEvent,
     getCurrentEvent,
     getCurrentGuests,
     getCurrentGuestSummary,
@@ -38,9 +42,21 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
     fetchEventPlanningData,
   } = useAppStore();
 
-  const event = getCurrentEvent();
+  const targetEventId = routeEventId || currentEventId;
+  const event = events.find((e) => e.id === targetEventId) || getCurrentEvent();
   const guests = getCurrentGuests();
   const guestSummary = getCurrentGuestSummary();
+
+  useEffect(() => {
+    if (routeEventId) {
+      if (routeEventId !== currentEventId) {
+        selectEvent(routeEventId);
+      }
+      if (routeEventId.startsWith('evt-')) {
+        useAppStore.setState({ planningError: null });
+      }
+    }
+  }, [routeEventId, currentEventId, selectEvent]);
 
   useEffect(() => {
     if (event?.id) {
@@ -67,7 +83,25 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
   // Editing state
   const [editingGuest, setEditingGuest] = useState<GuestItem | null>(null);
 
-  if (!event) return null;
+  if (!event) {
+    return (
+      <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+        <Users className="w-8 h-8 text-slate-400 mx-auto" />
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          Celebration Not Found
+        </h3>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          We could not locate this celebration. Please select an existing celebration from the sidebar or return to your dashboard.
+        </p>
+        <Link
+          to="/app/dashboard"
+          className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors inline-block"
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   // Real or deterministic calculations
   const confirmed = guests.filter((g) => g.rsvpStatus === 'confirmed');
@@ -204,7 +238,7 @@ export const GuestPage: React.FC<GuestPageProps> = ({ onOpenAdaptiveModal }) => 
       )}
 
       {/* DATABASE SYNC NOTICE */}
-      {planningError && event.id !== 'evt-wedding-01' && (
+      {planningError && event?.id && !event.id.startsWith('evt-') && (
         <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />

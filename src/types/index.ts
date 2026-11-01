@@ -59,33 +59,98 @@ export type UserEventBookingStatus =
 export interface CommunityVendor {
   id: string;
   name: string;
-  category: CommunityVendorCategory;
+  slug?: string;
+  category: string;
+  description?: string;
   city: string;
-  state: string;
+  state?: string;
+  country?: string;
+  address?: string;
   businessAddress?: string;
   publicPhone?: string;
+  publicEmail?: string;
   website?: string;
-  socialLinks?: string;
+  websiteUrl?: string;
+  socialLinks?: any;
+  serviceAreas?: string[];
+  eventTypes?: string[];
+  priceInformation?: {
+    startingPrice?: number;
+    maxPrice?: number;
+    priceRange?: string;
+    pricingModel?: string;
+    currency?: string;
+  };
   reportedPriceMin?: number;
   reportedPriceMax?: number;
   reportedQuotation?: number;
   currency?: string;
   packageInclusions?: string[];
   additionalCharges?: string[];
-  suitableEventTypes: string[];
-  contributorExperienceType:
+  suitableEventTypes?: string[];
+  contributorExperienceType?:
     | 'Personally Used This Vendor'
     | 'Visited This Vendor'
     | 'Received a Quotation'
     | 'Recommended by Someone'
     | 'Found Through Another Source';
   publicFeedback?: string;
-  submittedAt: string;
-  updatedAt: string;
-  moderationStatus: 'approved' | 'pending_review' | 'rejected' | 'needs_more_info';
-  isDemoRecord: boolean;
+  submittedAt?: string;
+  updatedAt?: string;
+  createdAt?: string;
+  status?: 'approved' | 'pending' | 'rejected' | 'suspended';
+  moderationStatus?: 'approved' | 'pending_review' | 'rejected' | 'needs_more_info';
+  isDemoRecord?: boolean;
   contributedBy?: string;
+  submittedBy?: string;
   rating?: number;
+}
+
+export interface MySavedVendor {
+  id: string;
+  userId: string;
+  vendorId: string;
+  personalNotes?: string | null;
+  savedAt: string;
+  vendor: CommunityVendor;
+}
+
+export interface EventVendorRecord {
+  id: string;
+  eventId: string;
+  vendorId: string;
+  category: string;
+  selectionStatus: 'shortlisted' | 'contacted' | 'quoted' | 'hired' | 'rejected';
+  contactStatus: 'not_contacted' | 'contacted' | 'meeting_scheduled' | 'proposal_received' | 'contract_signed';
+  estimatedCost: number;
+  actualCost?: number | null;
+  currency: string;
+  privateNotes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  vendor?: CommunityVendor;
+  expenses?: any[];
+}
+
+export interface RecommendationScoreBreakdown {
+  categoryMatch: { matched: boolean; score: number; maxScore: number };
+  cityMatch: { matched: boolean; score: number; maxScore: number };
+  serviceAreaMatch: { matched: boolean; score: number; maxScore: number };
+  eventTypeMatch: { matched: boolean; score: number; maxScore: number };
+  budgetMatch: {
+    matched: boolean;
+    score: number;
+    maxScore: number;
+    startingPrice?: number;
+    budgetLimit?: number;
+  };
+}
+
+export interface RecommendedVendorItem {
+  vendor: CommunityVendor;
+  score: number;
+  scoreDetails: RecommendationScoreBreakdown;
+  reasons: string[];
 }
 
 export interface UserEventVendor {
@@ -93,7 +158,7 @@ export interface UserEventVendor {
   eventId: string;
   vendorId?: string; // Links to community vendor if saved from community
   name: string;
-  category: CommunityVendorCategory;
+  category: string;
   city?: string;
   publicPhone?: string;
   website?: string;
@@ -147,6 +212,10 @@ export interface EventModel {
   currency: CurrencyCode;
   completionPercentage: number;
   status: 'planning' | 'confirmed' | 'in_progress' | 'completed' | 'archived';
+  theme?: string;
+  type?: string;
+  budget?: number | string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }

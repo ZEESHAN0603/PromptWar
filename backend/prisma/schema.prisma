@@ -19,11 +19,16 @@ model Profile {
   fullName    String?
   avatarUrl   String?
   phoneNumber String?
+  role        String   @default("user") // "user" or "admin"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  events Event[]
+  events                 Event[]
+  submittedContributions VendorContribution[] @relation("SubmittedContributions")
+  reviewedContributions  VendorContribution[] @relation("ReviewedContributions")
+  savedVendors           MyVendor[]
 
+  @@index([role])
   @@map("profiles")
 }
 
@@ -53,6 +58,10 @@ model Event {
   guests           Guest[]
   tasks            Task[]
   timelineItems    TimelineItem[]
+
+  // Phase 4 Relations
+  eventVendors     EventVendor[]
+  personalizedIdeas PersonalizedIdea[]
 
   @@index([userId])
   @@index([status])
@@ -91,15 +100,18 @@ model Expense {
   expenseDate     DateTime?
   paymentStatus   String    @default("pending") // pending, partially_paid, paid
   notes           String?
+  eventVendorId   String?   @db.Uuid
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  event    Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  category BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  eventVendor EventVendor?    @relation(fields: [eventVendorId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
   @@index([categoryId])
   @@index([paymentStatus])
+  @@index([eventVendorId])
   @@map("expenses")
 }
 
@@ -185,4 +197,129 @@ model TimelineItem {
   @@index([eventId])
   @@index([startTime])
   @@map("timeline_items")
+}
+
+/// CommunityVendor model representing shared, approved vendor knowledge base
+model CommunityVendor {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  slug             String   @unique
+  category         String   // Venue, Catering, Photography, Videography, Decoration, Music/DJ, Makeup & Hair, Mehndi, Planner, Attire, Transportation, Other
+  description      String?
+  city             String
+  state            String?
+  country          String   @default("India")
+  address          String?
+  publicPhone      String?
+  publicEmail      String?
+  websiteUrl       String?
+  socialLinks      Json?    // e.g. { instagram: "...", facebook: "...", youtube: "..." }
+  serviceAreas     Json?    // e.g. ["Mumbai", "Thane", "Navi Mumbai"]
+  eventTypes       Json?    // e.g. ["Wedding", "Birthday", "Corporate", "Anniversary"]
+  priceInformation Json?    // e.g. { startingPrice: 50000, maxPrice: 200000, priceRange: "$$" / "mid", pricingModel: "per_day" }
+  rating           Decimal? @db.Decimal(3, 2)
+  status           String   @default("pending") // pending, approved, rejected, suspended
+  submittedBy      String?  @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  contributions VendorContribution[]
+  savedByUsers  MyVendor[]
+  eventVendors  EventVendor[]
+
+  @@index([category])
+  @@index([city])
+  @@index([status])
+  @@map("community_vendors")
+}
+
+/// VendorContribution model tracking community vendor submissions and admin review
+model VendorContribution {
+  id               String    @id @default(uuid()) @db.Uuid
+  vendorId         String    @db.Uuid
+  submittedBy      String    @db.Uuid
+  relationshipType String    // customer, past_client, acquaintance, other
+  sourceDescription String?  // how the submitter learned about this vendor
+  privateNotes     String?   // submitter's private notes
+  consentConfirmed Boolean   @default(false)
+  reviewStatus     String    @default("pending") // pending, approved, rejected
+  reviewedBy       String?   @db.Uuid
+  reviewedAt       DateTime?
+  reviewNotes      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  vendor    CommunityVendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  submitter Profile         @relation("SubmittedContributions", fields: [submittedBy], references: [id], onDelete: Cascade)
+  reviewer  Profile?        @relation("ReviewedContributions", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([submittedBy])
+  @@index([reviewStatus])
+  @@map("vendor_contributions")
+}
+
+/// MyVendor model tracking customers' saved personal vendor bookmarks
+model MyVendor {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  vendorId      String   @db.Uuid
+  personalNotes String?
+  savedAt       DateTime @default(now())
+
+  user   Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendor CommunityVendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vendorId])
+  @@index([userId])
+  @@index([vendorId])
+  @@map("my_vendors")
+}
+
+/// EventVendor model managing vendor assignments, costs, and statuses within an event
+model EventVendor {
+  id              String   @id @default(uuid()) @db.Uuid
+  eventId         String   @db.Uuid
+  vendorId        String   @db.Uuid
+  category        String
+  selectionStatus String   @default("shortlisted") // shortlisted, contacted, quoted, hired, rejected
+  contactStatus   String   @default("not_contacted") // not_contacted, contacted, meeting_scheduled, proposal_received, contract_signed
+  estimatedCost   Decimal  @default(0.00) @db.Decimal(12, 2)
+  actualCost      Decimal? @db.Decimal(12, 2)
+  currency        String   @default("INR")
+  privateNotes    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event    Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor   CommunityVendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([eventId, vendorId])
+  @@index([eventId])
+  @@index([vendorId])
+  @@index([selectionStatus])
+  @@map("event_vendors")
+}
+
+/// PersonalizedIdea model representing tailored celebration ideas and concepts
+model PersonalizedIdea {
+  id                   String   @id @default(uuid()) @db.Uuid
+  eventId              String   @db.Uuid
+  title                String
+  description          String
+  category             String   // decor, food, entertainment, activities, themes, photography, venue
+  estimatedBudgetRange String
+  matchReason          String
+  alternatives         Json?    // list of alternatives as JSON string array
+  isSaved              Boolean  @default(false)
+  tags                 Json?    // tags as JSON string array
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([category])
+  @@map("personalized_ideas")
 }

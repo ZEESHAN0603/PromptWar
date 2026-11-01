@@ -5,7 +5,7 @@ import { useAppStore } from '../store/useAppStore';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loginWithSupabase } = useAppStore();
+  const { loginWithSupabase, login } = useAppStore();
 
   const [email, setEmail] = useState('aditi.planner@eventpilot.example.com');
   const [password, setPassword] = useState('celebration2026');
@@ -34,6 +34,20 @@ export const LoginPage: React.FC = () => {
       navigate('/app/dashboard');
     } else {
       setError(result.error || 'Authentication failed. Please verify credentials.');
+    }
+  };
+
+  const handleQuickDemoLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    const result = await loginWithSupabase('aditi.planner@eventpilot.example.com', 'celebration2026');
+    setIsLoading(false);
+    if (result.success) {
+      navigate('/app/dashboard');
+    } else {
+      // Fallback to local demo access if Supabase network fails
+      login('aditi.planner@eventpilot.example.com', 'Aditi Deshmukh');
+      navigate('/app/dashboard');
     }
   };
 
@@ -139,6 +153,21 @@ export const LoginPage: React.FC = () => {
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
+            </button>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+              <span className="flex-shrink mx-3 text-[11px] text-slate-400">or explore instantly</span>
+              <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleQuickDemoLogin}
+              className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Quick Demo Access (No Password Required)</span>
             </button>
           </form>
 

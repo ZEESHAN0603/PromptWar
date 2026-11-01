@@ -9,3 +9,12 @@ export function getParam(req: Request, key: string): string {
   return value;
 }
 
+export function extractEventId(params: Record<string, any>): string {
+  const eventId = params.eventId || params.id;
+  if (!eventId || typeof eventId !== 'string') {
+    throw ApiError.badRequest('Missing or invalid eventId parameter');
+  }
+  return eventId;
+}
+
+

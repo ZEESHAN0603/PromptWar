@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   ArrowUpDown,
   PartyPopper,
+  Building2,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { formatCurrency, formatDate, getDaysRemaining } from '../utils/formatters';
@@ -50,6 +51,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
   const {
     user,
     events,
+    currentEventId,
     eventsLoading,
     fetchUserEvents,
     selectEvent,
@@ -62,7 +64,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
   } = useAppStore();
 
   // Load events from backend on mount
-  React.useEffect(() => {
+  useEffect(() => {
     fetchUserEvents();
   }, [fetchUserEvents]);
 
@@ -100,10 +102,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
   const filteredEvents = useMemo(() => {
     return events
       .filter((evt) => {
+        const nameStr = (evt.name || '').toLowerCase();
+        const locStr = (evt.location || '').toLowerCase();
+        const catStr = (evt.category || '').toLowerCase();
+        const q = searchQuery.toLowerCase();
         const matchesSearch =
-          evt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          evt.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          evt.category.toLowerCase().includes(searchQuery.toLowerCase());
+          nameStr.includes(q) ||
+          locStr.includes(q) ||
+          catStr.includes(q);
         const matchesCategory = categoryFilter === 'All' || evt.category === categoryFilter;
         const matchesStatus =
           statusFilter === 'All' ||
@@ -180,6 +186,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onOpenAdaptiveModa
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => navigate(currentEventId ? `/app/events/${currentEventId}/vendors` : '/app/vendors')}
+            className="px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+          >
+            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Recommended Vendors</span>
+          </button>
           <button
             onClick={() => navigate('/app/events/new')}
             className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm"

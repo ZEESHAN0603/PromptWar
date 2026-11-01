@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Calendar,
@@ -29,6 +29,9 @@ export const EventOverviewPage: React.FC<EventOverviewPageProps> = ({ onOpenAdap
   const { eventId } = useParams<{ eventId: string }>();
 
   const {
+    events,
+    currentEventId,
+    selectEvent,
     getCurrentEvent,
     getCurrentBudgets,
     getCurrentTasks,
@@ -39,7 +42,14 @@ export const EventOverviewPage: React.FC<EventOverviewPageProps> = ({ onOpenAdap
     currency,
   } = useAppStore();
 
-  const event = getCurrentEvent();
+  const targetEventId = eventId || currentEventId;
+  const event = events.find((e) => e.id === targetEventId) || getCurrentEvent();
+
+  useEffect(() => {
+    if (eventId && eventId !== currentEventId) {
+      selectEvent(eventId);
+    }
+  }, [eventId, currentEventId, selectEvent]);
   const budgets = getCurrentBudgets();
   const tasks = getCurrentTasks();
   const vendors = getCurrentVendors();
@@ -335,7 +345,7 @@ export const EventOverviewPage: React.FC<EventOverviewPageProps> = ({ onOpenAdap
               <span>Recommended Celebration Ideas for Your Vision</span>
             </h3>
             <p className="text-xs text-slate-500">
-              Tailored to your {event.category} preferences: {event.preferences.atmosphere}
+              Tailored to your {event.category || 'Celebration'} preferences: {event.preferences?.atmosphere || event.theme || 'Classic & Elegant'}
             </p>
           </div>
           <button

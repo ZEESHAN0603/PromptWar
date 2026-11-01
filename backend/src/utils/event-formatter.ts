@@ -31,6 +31,34 @@ export function formatEvent(event: Event) {
     totalBudget: budgetNum,
     occasionDescription: event.description || '',
     completionPercentage: 10,
+    guestBreakdown: {
+      adults: Math.round(event.guestCount * 0.8),
+      children: Math.round(event.guestCount * 0.15),
+      elderly: Math.round(event.guestCount * 0.05),
+    },
+    dietaryPreferences: ['Standard'],
+    accessibilityRequirements: [],
+    preferences: {
+      atmosphere: event.theme || 'Classic & Elegant',
+      style: event.theme || 'Modern',
+      food: 'Standard catering',
+      decoration: 'Celebration styling',
+      photography: 'Documentary & portraits',
+      entertainment: 'Celebration music',
+      cultural: 'Traditional & contemporary',
+    },
+    priorities: {
+      foodQuality: 4,
+      guestExperience: 4,
+      venue: 4,
+      decoration: 3,
+      photography: 3,
+      entertainment: 3,
+      accessibility: 3,
+    },
+    mustHaves: [],
+    avoidances: [],
+    preferredSpendingLevel: 'balanced',
   };
 }
 

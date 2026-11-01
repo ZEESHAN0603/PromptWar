@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   Lightbulb,
   Bookmark,
@@ -21,19 +21,56 @@ interface IdeasPageProps {
 
 export const IdeasPage: React.FC<IdeasPageProps> = ({ onOpenAdaptiveModal }) => {
   const navigate = useNavigate();
+  const { eventId: routeEventId } = useParams<{ eventId: string }>();
   const {
+    events,
+    currentEventId,
+    selectEvent,
     getCurrentEvent,
     getCurrentIdeas,
+    fetchEventIdeas,
+    ideasLoading,
     toggleSaveIdea,
   } = useAppStore();
 
-  const event = getCurrentEvent();
-  const ideas = getCurrentIdeas();
+  const targetEventId = routeEventId || currentEventId;
+  const event = events.find((e) => e.id === targetEventId) || getCurrentEvent();
+  const ideas = getCurrentIdeas(event?.id);
+
+  useEffect(() => {
+    if (routeEventId && routeEventId !== currentEventId) {
+      selectEvent(routeEventId);
+    }
+  }, [routeEventId, currentEventId, selectEvent]);
+
+  useEffect(() => {
+    if (event?.id) {
+      fetchEventIdeas(event.id);
+    }
+  }, [event?.id]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedIdeaDetail, setSelectedIdeaDetail] = useState<IdeaItem | null>(null);
 
-  if (!event) return null;
+  if (!event) {
+    return (
+      <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+        <Lightbulb className="w-8 h-8 text-slate-400 mx-auto" />
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          Celebration Not Found
+        </h3>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          We could not locate this celebration. Please select an existing celebration from the sidebar or return to your dashboard.
+        </p>
+        <Link
+          to="/app/dashboard"
+          className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors inline-block"
+        >
+          Return to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   const filteredIdeas = ideas.filter((idea) => {
     if (selectedCategory === 'all') return true;
@@ -53,7 +90,7 @@ export const IdeasPage: React.FC<IdeasPageProps> = ({ onOpenAdaptiveModal }) => 
             Personalized Celebration Ideas
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Tailored suggestions synthesized from your atmosphere preference ({event.preferences.atmosphere}) and budget tier.
+            Tailored suggestions synthesized from your atmosphere preference ({event.preferences?.atmosphere || event.theme || 'Classic & Elegant'}) and budget tier.
           </p>
         </div>
 
@@ -101,90 +138,107 @@ export const IdeasPage: React.FC<IdeasPageProps> = ({ onOpenAdaptiveModal }) => 
       </div>
 
       {/* 4. IDEAS CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {filteredIdeas.map((idea) => {
-          return (
-            <div
-              key={idea.id}
-              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xs flex flex-col justify-between hover:border-indigo-400/80 transition-all"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    {idea.category}
-                  </span>
-                  <button
-                    onClick={() => toggleSaveIdea(event.id, idea.id)}
-                    className="p-1 text-slate-400 hover:text-indigo-600"
-                    title={idea.isSaved ? 'Remove Bookmark' : 'Bookmark Idea'}
-                  >
-                    {idea.isSaved ? (
-                      <BookmarkCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 fill-current" />
-                    ) : (
-                      <Bookmark className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  {idea.title}
-                </h3>
-
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
-                  {idea.description}
-                </p>
-
-                <div className="mt-3 p-2.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs">
-                  <span className="font-semibold text-indigo-900 dark:text-indigo-300">
-                    Why it fits your profile:
-                  </span>{' '}
-                  <span className="text-slate-700 dark:text-slate-300">{idea.matchReason}</span>
-                </div>
-
-                {idea.alternatives && idea.alternatives.length > 0 && (
-                  <div className="mt-2 text-[11px] text-slate-500">
-                    <span className="font-semibold">Budget Alternative:</span> {idea.alternatives[0]}
+      {ideasLoading ? (
+        <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-500">Synthesizing personalized concepts from celebration profile...</p>
+        </div>
+      ) : filteredIdeas.length === 0 ? (
+        <div className="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+          <Lightbulb className="w-8 h-8 text-slate-400 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            No concepts found for this filter
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            Try selecting &ldquo;All Ideas&rdquo; or bookmarking concepts to view them here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredIdeas.map((idea) => {
+            return (
+              <div
+                key={idea.id}
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-2xs flex flex-col justify-between hover:border-indigo-400/80 transition-all"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      {idea.category}
+                    </span>
+                    <button
+                      onClick={() => toggleSaveIdea(event.id, idea.id)}
+                      className="p-1 text-slate-400 hover:text-indigo-600"
+                      title={idea.isSaved ? 'Remove Bookmark' : 'Bookmark Idea'}
+                    >
+                      {idea.isSaved ? (
+                        <BookmarkCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400 fill-current" />
+                      ) : (
+                        <Bookmark className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
-                )}
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-2">
-                <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                  Est. {idea.estimatedBudgetRange}
-                </span>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {idea.title}
+                  </h3>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const catMap: Record<string, string> = {
-                        decor: 'Decoration & Florals',
-                        food: 'Catering & Food',
-                        entertainment: 'Entertainment',
-                        activities: 'Entertainment',
-                      };
-                      const targetCat = catMap[idea.category] || 'Wedding Venues';
-                      navigate(`/app/events/${event.id}/vendors?category=${encodeURIComponent(targetCat)}`);
-                    }}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors"
-                    title="Find community vendors for this concept"
-                  >
-                    <Building2 className="w-3 h-3" />
-                    <span>Find Vendors</span>
-                  </button>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
+                    {idea.description}
+                  </p>
 
-                  <button
-                    onClick={() => setSelectedIdeaDetail(idea)}
-                    className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 flex items-center gap-1"
-                  >
-                    <span>Details</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="mt-3 p-2.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs">
+                    <span className="font-semibold text-indigo-900 dark:text-indigo-300">
+                      Why it fits your profile:
+                    </span>{' '}
+                    <span className="text-slate-700 dark:text-slate-300">{idea.matchReason}</span>
+                  </div>
+
+                  {idea.alternatives && idea.alternatives.length > 0 && (
+                    <div className="mt-2 text-[11px] text-slate-500">
+                      <span className="font-semibold">Budget Alternative:</span> {idea.alternatives[0]}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-2">
+                  <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                    Est. {idea.estimatedBudgetRange}
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const catMap: Record<string, string> = {
+                          decor: 'Decoration & Florals',
+                          food: 'Catering & Food',
+                          entertainment: 'Entertainment',
+                          activities: 'Entertainment',
+                        };
+                        const targetCat = catMap[idea.category] || 'Wedding Venues';
+                        navigate(`/app/events/${event.id}/vendors?category=${encodeURIComponent(targetCat)}`);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors"
+                      title="Find community vendors for this concept"
+                    >
+                      <Building2 className="w-3 h-3" />
+                      <span>Find Vendors</span>
+                    </button>
+
+                    <button
+                      onClick={() => setSelectedIdeaDetail(idea)}
+                      className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 flex items-center gap-1"
+                    >
+                      <span>Details</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 5. ALTERNATIVES MODAL */}
       {selectedIdeaDetail && (

@@ -28,10 +28,10 @@ export const SettingsPage: React.FC = () => {
     logout,
   } = useAppStore();
 
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
-  const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
-  const [role, setRole] = useState(user.role);
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
+  const [role, setRole] = useState(user?.role || 'Event Organizer');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
@@ -174,18 +174,16 @@ export const SettingsPage: React.FC = () => {
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
             <button
               onClick={() => setTheme('light')}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-semibold transition-colors ${
-                theme === 'light' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
-              }`}
+              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-semibold transition-colors ${theme === 'light' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
+                }`}
             >
               <Sun className="w-3.5 h-3.5" />
               <span>Light</span>
             </button>
             <button
               onClick={() => setTheme('dark')}
-              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-semibold transition-colors ${
-                theme === 'dark' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-500'
-              }`}
+              className={`px-3 py-1.5 rounded-md flex items-center gap-1.5 font-semibold transition-colors ${theme === 'dark' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-500'
+                }`}
             >
               <Moon className="w-3.5 h-3.5" />
               <span>Dark</span>

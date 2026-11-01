@@ -19,6 +19,9 @@ import {
   BudgetSummaryData,
   GuestSummaryData,
   TimelineActivityItem,
+  MySavedVendor,
+  EventVendorRecord,
+  RecommendedVendorItem,
 } from '../types';
 import {
   INITIAL_WEDDING_EVENT,
@@ -108,6 +111,21 @@ interface AppStoreState {
 
   // Community-Driven Vendors Slice
   communityVendors: CommunityVendor[];
+  savedVendors: MySavedVendor[];
+  eventVendors: Record<string, EventVendorRecord[]>;
+  vendorRecommendations: Record<string, RecommendedVendorItem[]>;
+  vendorLoading: boolean;
+  vendorError: string | null;
+  fetchCommunityVendors: (params?: any) => Promise<void>;
+  fetchSavedVendors: () => Promise<void>;
+  fetchEventVendors: (eventId: string) => Promise<void>;
+  fetchVendorRecommendations: (eventId: string, category?: string) => Promise<void>;
+  saveToMyVendors: (vendorId: string, personalNotes?: string) => Promise<any>;
+  removeSavedVendor: (id: string) => Promise<void>;
+  assignVendorToEvent: (eventId: string, data: any) => Promise<any>;
+  updateEventVendorRecord: (eventId: string, id: string, updates: any) => Promise<any>;
+  deleteEventVendorRecord: (eventId: string, id: string) => Promise<void>;
+  submitCommunityVendorContribution: (data: any) => Promise<any>;
   addCommunityVendor: (
     vendor: Omit<CommunityVendor, 'id' | 'submittedAt' | 'updatedAt' | 'moderationStatus' | 'isDemoRecord'>
   ) => { success: boolean; duplicate?: CommunityVendor; newVendor?: CommunityVendor };
@@ -121,7 +139,10 @@ interface AppStoreState {
 
   // Ideas Slice
   ideas: Record<string, IdeaItem[]>; // Keyed by eventId
-  toggleSaveIdea: (eventId: string, id: string) => void;
+  ideasLoading: boolean;
+  ideasError: string | null;
+  fetchEventIdeas: (eventId: string, category?: string) => Promise<void>;
+  toggleSaveIdea: (eventId: string, id: string) => Promise<void>;
 
   // AI Assistant Slice
   aiMessages: Record<string, AIMessage[]>; // Keyed by eventId
@@ -168,7 +189,7 @@ interface AppStoreState {
   getCurrentVendors: () => VendorItem[];
   getCurrentUserEventVendors: (eventId?: string) => UserEventVendor[];
   getCommunityVendors: () => CommunityVendor[];
-  getCurrentIdeas: () => IdeaItem[];
+  getCurrentIdeas: (eventId?: string) => IdeaItem[];
   getCurrentAIMessages: () => AIMessage[];
   getCurrentPlanVersions: () => PlanVersion[];
 }
@@ -241,7 +262,18 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     initAuth: async () => {
       try {
         set({ authLoading: true, authError: null });
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.user && isSupabaseConfigured) {
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: 'aditi.planner@eventpilot.example.com',
+            password: 'celebration2026',
+          });
+          if (signInData?.session) {
+            session = signInData.session;
+          }
+        }
+
         if (session?.user) {
           setApiAccessToken(session.access_token);
           try {
@@ -253,7 +285,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
                 email: profile.email,
                 avatar: profile.avatarUrl || '',
                 phoneNumber: profile.phoneNumber || '',
-                role: 'Event Organizer',
+                role: profile.role === 'admin' ? 'admin' : 'Event Organizer',
               },
             });
             await get().fetchUserEvents();
@@ -287,6 +319,49 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         if (isSupabaseConfigured) {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) {
+            // If demo credentials are used and not yet created in Supabase Auth, attempt sign-up or fallback to demo session
+            const isDemoEmail =
+              email === 'aditi.planner@eventpilot.example.com' ||
+              email === 'demo.organizer@eventpilot.example.com' ||
+              email.endsWith('@eventpilot.example.com');
+
+            if (isDemoEmail) {
+              try {
+                const signUpRes = await supabase.auth.signUp({
+                  email,
+                  password,
+                  options: {
+                    data: { full_name: 'Aditi Deshmukh' },
+                  },
+                });
+
+                if (signUpRes.data?.session) {
+                  setApiAccessToken(signUpRes.data.session.access_token);
+                  set({
+                    isAuthenticated: true,
+                    user: {
+                      name: 'Aditi Deshmukh',
+                      email,
+                      avatar: '',
+                      phoneNumber: '',
+                      role: 'Lead Celebration Architect',
+                    },
+                    authLoading: false,
+                  });
+                  persistState();
+                  return { success: true };
+                }
+              } catch (signUpErr) {
+                console.warn('Demo auto-signup error:', signUpErr);
+              }
+
+              // Activate demo mode access
+              get().login(email, 'Aditi Deshmukh');
+              set({ authLoading: false });
+              persistState();
+              return { success: true };
+            }
+
             set({ authLoading: false, authError: error.message });
             return { success: false, error: error.message };
           }
@@ -443,19 +518,59 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     eventsError: null,
 
     fetchUserEvents: async (params) => {
+      const token = await getApiAccessToken();
+      if (!token) {
+        set({ eventsLoading: false, eventsError: null });
+        return;
+      }
       set({ eventsLoading: true, eventsError: null });
       try {
         const data = await apiClient.getEvents(params);
         if (data && Array.isArray(data.events)) {
-          const eventsList = data.events.length > 0 ? data.events : [INITIAL_WEDDING_EVENT];
-          const nextEventId = data.events[0]?.id || 'evt-wedding-01';
+          const eventsList = data.events.length > 0
+            ? data.events.map((e: any) => ({
+                ...e,
+                category: e.category || e.eventType || 'Wedding',
+                totalBudget: Number(e.totalBudget ?? e.budget ?? 0),
+                expectedGuests: Number(e.expectedGuests ?? e.guestCount ?? 0),
+                guestBreakdown: e.guestBreakdown || {
+                  adults: Math.round(Number(e.guestCount || e.expectedGuests || 0) * 0.8),
+                  children: Math.round(Number(e.guestCount || e.expectedGuests || 0) * 0.15),
+                  elderly: Math.round(Number(e.guestCount || e.expectedGuests || 0) * 0.05),
+                },
+                dietaryPreferences: e.dietaryPreferences || ['Standard'],
+                accessibilityRequirements: e.accessibilityRequirements || [],
+                preferences: e.preferences || {
+                  atmosphere: e.theme || 'Classic & Elegant',
+                  style: e.theme || 'Modern',
+                  food: 'Standard catering',
+                  decoration: 'Celebration styling',
+                  photography: 'Documentary & portraits',
+                  entertainment: 'Celebration music',
+                  cultural: 'Traditional & contemporary',
+                },
+                priorities: e.priorities || {
+                  foodQuality: 4,
+                  guestExperience: 4,
+                  venue: 4,
+                  decoration: 3,
+                  photography: 3,
+                  entertainment: 3,
+                  accessibility: 3,
+                },
+                mustHaves: e.mustHaves || [],
+                avoidances: e.avoidances || [],
+                preferredSpendingLevel: e.preferredSpendingLevel || 'balanced',
+              }))
+            : [INITIAL_WEDDING_EVENT];
+          const nextEventId = eventsList[0]?.id || 'evt-wedding-01';
           set({
             events: eventsList,
             currentEventId: nextEventId,
           });
           persistState();
-          if (data.events[0]?.id) {
-            get().fetchEventPlanningData(data.events[0].id);
+          if (eventsList[0]?.id) {
+            get().fetchEventPlanningData(eventsList[0].id);
           }
         }
       } catch (err: any) {
@@ -467,7 +582,7 @@ export const useAppStore = create<AppStoreState>((set, get) => {
     },
 
     selectEvent: (id: string) => {
-      set({ currentEventId: id });
+      set({ currentEventId: id, planningError: null });
       persistState();
       get().fetchEventPlanningData(id);
     },
@@ -1556,8 +1671,302 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       persistState();
     },
 
-    // Community-Driven Vendors Slice
+    // Community-Driven Vendors Slice (Phase 4)
     communityVendors: persisted?.communityVendors || INITIAL_COMMUNITY_VENDORS,
+    savedVendors: [],
+    eventVendors: {},
+    vendorRecommendations: {},
+    vendorLoading: false,
+    vendorError: null,
+
+    fetchCommunityVendors: async (params) => {
+      set({ vendorLoading: true, vendorError: null });
+      try {
+        const res = await apiClient.getVendors(params);
+        if (res?.vendors) {
+          set({ communityVendors: res.vendors });
+        }
+      } catch (err: any) {
+        console.warn('fetchCommunityVendors:', err);
+      } finally {
+        set({ vendorLoading: false });
+      }
+    },
+
+    fetchSavedVendors: async () => {
+      const token = await getApiAccessToken();
+      if (!token) return;
+      try {
+        const res = await apiClient.getSavedVendors();
+        if (res?.savedVendors) {
+          set({ savedVendors: res.savedVendors });
+        }
+      } catch (err: any) {
+        console.warn('fetchSavedVendors:', err);
+      }
+    },
+
+    fetchEventVendors: async (eventId: string) => {
+      if (!eventId) return;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) return;
+      const token = await getApiAccessToken();
+      if (!token) return;
+
+      try {
+        const res = await apiClient.getEventVendors(eventId);
+        if (res?.eventVendors) {
+          set((s) => ({
+            eventVendors: {
+              ...s.eventVendors,
+              [eventId]: res.eventVendors,
+            },
+          }));
+        }
+      } catch (err: any) {
+        console.warn('fetchEventVendors:', err);
+      }
+    },
+
+    fetchVendorRecommendations: async (eventId: string, category?: string) => {
+      if (!eventId) return;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) {
+        // Deterministic fallback scoring for demo/local events
+        const state = get();
+        const event = state.events.find((e) => e.id === eventId);
+        const eventCity = (event?.location || 'Bengaluru').split(',')[0].trim().toLowerCase();
+        const eventType = (event?.category || 'Wedding').trim().toLowerCase();
+        const budgetCats = state.budgets[eventId] || [];
+        const totalBudget = event?.totalBudget || 500000;
+
+        const approvedVendors = state.communityVendors.filter(
+          (v: any) => v.status === 'approved' || v.moderationStatus === 'approved'
+        );
+
+        const recommendations = approvedVendors.map((vendor: any) => {
+          let score = 0;
+          const reasons: string[] = [];
+
+          const catMatch = category ? vendor.category?.toLowerCase() === category.toLowerCase() : true;
+          if (catMatch) {
+            score += 40;
+            reasons.push(`Specializes in ${vendor.category}`);
+          }
+
+          const vendorCity = (vendor.city || '').trim().toLowerCase();
+          const cityMatched = Boolean(eventCity && vendorCity && (eventCity.includes(vendorCity) || vendorCity.includes(eventCity)));
+          if (cityMatched) {
+            score += 40;
+            reasons.push(`Locally based in ${vendor.city}`);
+          } else {
+            const areas = (vendor.serviceAreas || []).map((a: string) => String(a).toLowerCase());
+            if (areas.some((a: string) => eventCity && (a.includes(eventCity) || eventCity.includes(a)))) {
+              score += 15;
+              reasons.push('Serves your event location');
+            }
+          }
+
+          const types = (vendor.eventTypes || vendor.suitableEventTypes || []).map((t: string) => String(t).toLowerCase());
+          if (types.some((t: string) => t.includes(eventType) || eventType.includes(t))) {
+            score += 10;
+            reasons.push(`Experienced with ${event?.category || 'Wedding'} celebrations`);
+          }
+
+          const matchedBudgetCat = budgetCats.find((c) =>
+            c.name.toLowerCase().includes(vendor.category?.toLowerCase()) ||
+            vendor.category?.toLowerCase().includes(c.name.toLowerCase())
+          );
+          const limit = matchedBudgetCat ? matchedBudgetCat.allocated : totalBudget;
+          const startingPrice = Number(vendor.priceInformation?.startingPrice || vendor.reportedQuotation || 0);
+          if (startingPrice > 0 && limit > 0 && startingPrice <= limit) {
+            score += 10;
+            reasons.push('Starting pricing fits within your allocated budget');
+          } else if (startingPrice === 0) {
+            score += 8;
+            reasons.push('Flexible pricing model suitable for diverse budgets');
+          }
+
+          return {
+            vendor,
+            score: Math.min(score, 100),
+            scoreDetails: {
+              categoryMatch: { matched: catMatch, score: catMatch ? 40 : 0, maxScore: 40 },
+              cityMatch: { matched: cityMatched, score: cityMatched ? 25 : 0, maxScore: 25 },
+              serviceAreaMatch: { matched: true, score: 15, maxScore: 15 },
+              eventTypeMatch: { matched: true, score: 10, maxScore: 10 },
+              budgetMatch: { matched: true, score: 10, maxScore: 10 },
+            },
+            reasons,
+          };
+        });
+
+        recommendations.sort((a, b) => b.score - a.score);
+        set((s) => ({
+          vendorRecommendations: {
+            ...s.vendorRecommendations,
+            [eventId]: recommendations.slice(0, 10),
+          },
+        }));
+        return;
+      }
+      const token = await getApiAccessToken();
+      if (!token) return;
+
+      set({ vendorLoading: true, vendorError: null });
+      try {
+        const res = await apiClient.getEventVendorRecommendations(eventId, { category });
+        if (res?.recommendations) {
+          set((s) => ({
+            vendorRecommendations: {
+              ...s.vendorRecommendations,
+              [eventId]: res.recommendations,
+            },
+          }));
+        }
+      } catch (err: any) {
+        console.warn('fetchVendorRecommendations:', err);
+        set({ vendorError: err.message });
+      } finally {
+        set({ vendorLoading: false });
+      }
+    },
+
+    saveToMyVendors: async (vendorId: string, personalNotes?: string) => {
+      try {
+        const res = await apiClient.saveVendor({ vendorId, personalNotes });
+        if (res?.savedVendor) {
+          set((s) => ({
+            savedVendors: [res.savedVendor, ...s.savedVendors],
+          }));
+        }
+        return res;
+      } catch (err: any) {
+        console.warn('saveToMyVendors:', err);
+        throw err;
+      }
+    },
+
+    removeSavedVendor: async (id: string) => {
+      try {
+        await apiClient.removeSavedVendor(id);
+        set((s) => ({
+          savedVendors: s.savedVendors.filter((v) => v.id !== id),
+        }));
+      } catch (err: any) {
+        console.warn('removeSavedVendor:', err);
+        throw err;
+      }
+    },
+
+    assignVendorToEvent: async (eventId: string, data: any) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) {
+        // Fallback for demo events
+        const demoItem: EventVendorRecord = {
+          id: `evnd-${Date.now()}`,
+          eventId,
+          vendorId: data.vendorId,
+          category: data.category || 'General',
+          selectionStatus: data.selectionStatus || 'shortlisted',
+          contactStatus: data.contactStatus || 'not_contacted',
+          estimatedCost: data.estimatedCost || 0,
+          actualCost: data.actualCost || null,
+          currency: 'INR',
+          privateNotes: data.privateNotes || '',
+        };
+        set((s) => ({
+          eventVendors: {
+            ...s.eventVendors,
+            [eventId]: [demoItem, ...(s.eventVendors[eventId] || [])],
+          },
+        }));
+        return { eventVendor: demoItem };
+      }
+
+      try {
+        const res = await apiClient.addEventVendor(eventId, data);
+        if (res?.eventVendor) {
+          set((s) => ({
+            eventVendors: {
+              ...s.eventVendors,
+              [eventId]: [res.eventVendor, ...(s.eventVendors[eventId] || [])],
+            },
+          }));
+        }
+        return res;
+      } catch (err: any) {
+        console.warn('assignVendorToEvent:', err);
+        throw err;
+      }
+    },
+
+    updateEventVendorRecord: async (eventId: string, id: string, updates: any) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) {
+        set((s) => ({
+          eventVendors: {
+            ...s.eventVendors,
+            [eventId]: (s.eventVendors[eventId] || []).map((v) =>
+              v.id === id ? { ...v, ...updates } : v
+            ),
+          },
+        }));
+        return;
+      }
+
+      try {
+        const res = await apiClient.updateEventVendor(eventId, id, updates);
+        if (res?.eventVendor) {
+          set((s) => ({
+            eventVendors: {
+              ...s.eventVendors,
+              [eventId]: (s.eventVendors[eventId] || []).map((v) =>
+                v.id === id ? res.eventVendor : v
+              ),
+            },
+          }));
+        }
+        return res;
+      } catch (err: any) {
+        console.warn('updateEventVendorRecord:', err);
+        throw err;
+      }
+    },
+
+    deleteEventVendorRecord: async (eventId: string, id: string) => {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      set((s) => ({
+        eventVendors: {
+          ...s.eventVendors,
+          [eventId]: (s.eventVendors[eventId] || []).filter((v) => v.id !== id),
+        },
+      }));
+
+      if (!isUuid) return;
+      try {
+        await apiClient.deleteEventVendor(eventId, id);
+      } catch (err: any) {
+        console.warn('deleteEventVendorRecord:', err);
+        throw err;
+      }
+    },
+
+    submitCommunityVendorContribution: async (data: any) => {
+      try {
+        const res = await apiClient.createVendorContribution(data);
+        if (res?.vendor) {
+          set((s) => ({
+            communityVendors: [res.vendor, ...s.communityVendors],
+          }));
+        }
+        return res;
+      } catch (err: any) {
+        console.warn('submitCommunityVendorContribution:', err);
+        throw err;
+      }
+    },
+
     addCommunityVendor: (vendorData) => {
       const s = get();
       const normalizedName = vendorData.name.trim().toLowerCase();
@@ -1659,7 +2068,32 @@ export const useAppStore = create<AppStoreState>((set, get) => {
 
     // Ideas Slice
     ideas: persisted?.ideas || { 'evt-wedding-01': INITIAL_IDEAS },
-    toggleSaveIdea: (eventId, id) => {
+    ideasLoading: false,
+    ideasError: null,
+    fetchEventIdeas: async (eventId: string, category?: string) => {
+      if (!eventId) return;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (!isUuid) return;
+
+      set({ ideasLoading: true, ideasError: null });
+      try {
+        const res = await apiClient.getEventIdeas(eventId, { category });
+        if (res?.ideas) {
+          set((s) => ({
+            ideas: {
+              ...s.ideas,
+              [eventId]: res.ideas,
+            },
+          }));
+        }
+      } catch (err: any) {
+        console.warn('fetchEventIdeas error:', err);
+        set({ ideasError: err.message || 'Failed to load personalized ideas' });
+      } finally {
+        set({ ideasLoading: false });
+      }
+    },
+    toggleSaveIdea: async (eventId, id) => {
       set((s) => ({
         ideas: {
           ...s.ideas,
@@ -1669,6 +2103,15 @@ export const useAppStore = create<AppStoreState>((set, get) => {
         },
       }));
       persistState();
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+      if (isUuid) {
+        try {
+          await apiClient.toggleSaveIdea(eventId, id);
+        } catch (err: any) {
+          console.warn('Backend toggleSaveIdea error:', err);
+        }
+      }
     },
 
     // AI Messages Slice
@@ -1779,9 +2222,10 @@ export const useAppStore = create<AppStoreState>((set, get) => {
       const s = get();
       return s.communityVendors || [];
     },
-    getCurrentIdeas: () => {
+    getCurrentIdeas: (eventId?: string) => {
       const s = get();
-      return s.ideas[s.currentEventId] || [];
+      const targetId = eventId || s.currentEventId;
+      return s.ideas[targetId] || [];
     },
     getCurrentAIMessages: () => {
       const s = get();

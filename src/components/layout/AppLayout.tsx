@@ -49,10 +49,26 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
     getCurrentEvent,
   } = useAppStore();
 
-  const activeEvent = getCurrentEvent();
-  const effectiveEventId = eventId || currentEventId || events[0]?.id || '';
+  const isInsideEventWorkspace = Boolean(
+    location.pathname.startsWith('/app/events/') && !location.pathname.endsWith('/new')
+  );
+  const match = location.pathname.match(/\/app\/events\/([^/]+)/);
+  const routeEventId = match && match[1] !== 'new' ? match[1] : null;
 
-  const countdown = activeEvent ? getDaysRemaining(activeEvent.date) : null;
+  const effectiveEventId = routeEventId || currentEventId || events[0]?.id || '';
+  const activeEvent = events.find((e) => e.id === effectiveEventId) || getCurrentEvent();
+  const countdown = activeEvent?.date ? getDaysRemaining(activeEvent.date) : null;
+
+  const getPageTitle = () => {
+    if (isInsideEventWorkspace && activeEvent) {
+      return activeEvent.name;
+    }
+    if (location.pathname === '/app/dashboard') return 'All Celebrations Dashboard';
+    if (location.pathname === '/app/vendors') return 'Community Recommended Vendors';
+    if (location.pathname === '/app/events/new') return 'Plan New Celebration';
+    if (location.pathname === '/app/settings') return 'Planner Settings';
+    return 'EventPilot AI';
+  };
 
   const handleSelectEvent = (id: string) => {
     selectEvent(id);
@@ -75,7 +91,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
     highlight?: boolean;
   }
 
-  const navItems: NavItem[] = [
+  const workspaceNavItems: NavItem[] = [
     {
       to: `/app/events/${effectiveEventId}/overview`,
       label: 'Overview',
@@ -157,151 +173,253 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
           </button>
         </div>
 
-        {/* Current Event Selector */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="relative">
-            <button
-              onClick={() => setEventDropdownOpen(!eventDropdownOpen)}
-              className="w-full flex items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-colors"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                  Current Celebration
-                </div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
-                  {activeEvent ? activeEvent.name : 'Select Event'}
-                </div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-            </button>
+        {/* Sidebar Dynamic Content: Inside Event Workspace vs Global Hub */}
+        {isInsideEventWorkspace ? (
+          <>
+            {/* Inside Event Workspace: Back Button & Active Celebration Selector */}
+            <div className="p-3 border-b border-slate-100 dark:border-slate-800 space-y-2">
+              <button
+                onClick={() => navigate('/app/dashboard')}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 transition-colors"
+                title="Return to Celebrations Dashboard"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span className="truncate">← Back to Celebrations</span>
+              </button>
 
-            {eventDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1 max-h-60 overflow-y-auto">
-                <div className="px-3 py-1 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                  Your Celebrations
+              <div className="relative">
+                <button
+                  onClick={() => setEventDropdownOpen(!eventDropdownOpen)}
+                  className="w-full flex items-center justify-between gap-2 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-left transition-colors shadow-2xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      Active Celebration
+                    </div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5">
+                      {activeEvent ? activeEvent.name : 'Select Event'}
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                </button>
+
+                {eventDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1 max-h-60 overflow-y-auto">
+                    <div className="px-3 py-1 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                      Switch Celebration
+                    </div>
+                    {events.map((evt) => (
+                      <button
+                        key={evt.id}
+                        onClick={() => handleSelectEvent(evt.id)}
+                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors ${
+                          evt.id === effectiveEventId
+                            ? 'font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30'
+                            : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <span className="truncate">{evt.name}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                          {evt.category}
+                        </span>
+                      </button>
+                    ))}
+                    <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setEventDropdownOpen(false);
+                          navigate('/app/events/new');
+                        }}
+                        className="w-full px-3 py-1.5 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>Create New Event</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Event Workspace Navigation Links */}
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
+              <div>
+                <div className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                  Event Workspace
                 </div>
+                <nav className="space-y-0.5">
+                  {workspaceNavItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                            isActive
+                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                          }`
+                        }
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Hub Quick Links when inside workspace */}
+              <div>
+                <div className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                  Global Hub
+                </div>
+                <nav className="space-y-0.5">
+                  <NavLink
+                    to="/app/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <Calendar className="w-4 h-4 shrink-0" />
+                    <span>All Celebrations</span>
+                  </NavLink>
+                  <NavLink
+                    to="/app/vendors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <Building2 className="w-4 h-4 shrink-0" />
+                    <span>Vendor Directory</span>
+                  </NavLink>
+                  <NavLink
+                    to="/app/settings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 shrink-0" />
+                    <span>Planner Settings</span>
+                  </NavLink>
+                </nav>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Outside Workspace: Global Hub & Celebrations List */
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
+            <div>
+              <div className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                Workspace & Hub
+              </div>
+              <nav className="space-y-0.5">
+                <NavLink
+                  to="/app/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                    }`
+                  }
+                >
+                  <Calendar className="w-4 h-4 shrink-0" />
+                  <span>All Events Dashboard</span>
+                </NavLink>
+
+                <NavLink
+                  to="/app/vendors"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                    }`
+                  }
+                >
+                  <Building2 className="w-4 h-4 shrink-0" />
+                  <span>Recommended Vendors</span>
+                </NavLink>
+
+                <NavLink
+                  to="/app/events/new"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                    }`
+                  }
+                >
+                  <PlusCircle className="w-4 h-4 shrink-0" />
+                  <span>Plan New Celebration</span>
+                </NavLink>
+
+                <NavLink
+                  to="/app/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                    }`
+                  }
+                >
+                  <Settings className="w-4 h-4 shrink-0" />
+                  <span>Planner Settings</span>
+                </NavLink>
+              </nav>
+            </div>
+
+            {/* List of user celebrations with Open Workspace buttons */}
+            <div>
+              <div className="px-2 mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                <span>Your Celebrations</span>
+                <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                  {events.length}
+                </span>
+              </div>
+              <div className="space-y-2">
                 {events.map((evt) => (
-                  <button
+                  <div
                     key={evt.id}
                     onClick={() => handleSelectEvent(evt.id)}
-                    className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors ${
-                      evt.id === effectiveEventId
-                        ? 'font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30'
-                        : 'text-slate-700 dark:text-slate-300'
-                    }`}
+                    className="p-2.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-850 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 hover:border-indigo-300 dark:hover:border-indigo-700/70 transition-all cursor-pointer group shadow-2xs"
                   >
-                    <span className="truncate">{evt.name}</span>
-                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-                      {evt.category}
-                    </span>
-                  </button>
-                ))}
-                <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
-                  <button
-                    onClick={() => {
-                      setEventDropdownOpen(false);
-                      navigate('/app/events/new');
-                    }}
-                    className="w-full px-3 py-1.5 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>Create New Event</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
-          {/* Main workspace section */}
-          <div>
-            <div className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
-              Event Workspace
-            </div>
-            <nav className="space-y-0.5">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                        isActive
-                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
-                      }`
-                    }
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                    {item.highlight && (
-                      <span className="ml-auto text-[10px] bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 px-1.5 py-0.2 rounded font-semibold">
-                        Smart
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                        {evt.name}
                       </span>
-                    )}
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                        Open →
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="truncate">{evt.category}</span>
+                      <span>•</span>
+                      <span className="truncate">{evt.location}</span>
+                    </div>
+                  </div>
+                ))}
 
-          {/* Global workspace links */}
-          <div>
-            <div className="px-2 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-400">
-              Workspace & Hub
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/app/events/new');
+                  }}
+                  className="w-full mt-2 py-2 px-3 border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Create New Celebration</span>
+                </button>
+              </div>
             </div>
-            <nav className="space-y-0.5">
-              <NavLink
-                to="/app/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
-                  }`
-                }
-              >
-                <Calendar className="w-4 h-4 shrink-0" />
-                <span>All Events Dashboard</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/events/new"
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
-                  }`
-                }
-              >
-                <PlusCircle className="w-4 h-4 shrink-0" />
-                <span>Plan New Celebration</span>
-              </NavLink>
-
-              <NavLink
-                to="/app/settings"
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
-                  }`
-                }
-              >
-                <Settings className="w-4 h-4 shrink-0" />
-                <span>Planner Settings</span>
-              </NavLink>
-            </nav>
           </div>
-        </div>
+        )}
 
         {/* User Profile Footer */}
         <div className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -350,39 +468,49 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Back to My Celebrations Button */}
-            <button
-              onClick={() => navigate('/app/dashboard')}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-2xs"
-              title="Back to My Celebrations"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span className="hidden sm:inline">Back to My Celebrations</span>
-              <span className="sm:hidden">Celebrations</span>
-            </button>
+            {isInsideEventWorkspace ? (
+              <>
+                {/* Back to My Celebrations Button */}
+                <button
+                  onClick={() => navigate('/app/dashboard')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors border border-slate-200/80 dark:border-slate-700/80 shrink-0 shadow-2xs"
+                  title="Back to My Celebrations"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="hidden sm:inline">Back to My Celebrations</span>
+                  <span className="sm:hidden">Celebrations</span>
+                </button>
 
-            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+                <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
 
-            {/* Active Celebration Info */}
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
-              {activeEvent && (
-                <>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[120px] sm:max-w-[200px]">
-                    {activeEvent.name}
-                  </span>
-                  {countdown && (
-                    <span className="hidden md:inline-flex text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
-                      {countdown.label}
-                    </span>
+                {/* Active Celebration Info */}
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 min-w-0">
+                  {activeEvent && (
+                    <>
+                      <span className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[120px] sm:max-w-[200px]">
+                        {activeEvent.name}
+                      </span>
+                      {countdown && (
+                        <span className="hidden md:inline-flex text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
+                          {countdown.label}
+                        </span>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            ) : (
+              /* Global Hub Title */
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span className="truncate">{getPageTitle()}</span>
+              </div>
+            )}
           </div>
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {activeEvent && onOpenAdaptiveModal && (
+            {isInsideEventWorkspace && activeEvent && onOpenAdaptiveModal && (
               <button
                 onClick={onOpenAdaptiveModal}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 rounded-lg transition-colors shadow-2xs whitespace-nowrap"
@@ -398,7 +526,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 rounded-lg transition-colors whitespace-nowrap shadow-2xs"
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">New Event</span>
+              <span className="hidden md:inline">Plan Celebration</span>
             </button>
           </div>
         </header>
@@ -411,66 +539,128 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ onOpenAdaptiveModal }) => 
         {/* Global Floating AI Assistant Widget */}
         <FloatingAIAssistant onOpenAdaptiveModal={onOpenAdaptiveModal} />
 
-        {/* MOBILE BOTTOM NAVIGATION BAR (Sleek native-like app bar on small screens) */}
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
         <nav
           aria-label="Mobile Navigation"
           className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 py-1.5 shadow-lg safe-bottom"
         >
-          <NavLink
-            to={`/app/events/${effectiveEventId}/overview`}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
-              }`
-            }
-          >
-            <LayoutDashboard className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px]">Overview</span>
-          </NavLink>
+          {isInsideEventWorkspace ? (
+            <>
+              <NavLink
+                to={`/app/events/${effectiveEventId}/overview`}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <LayoutDashboard className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Overview</span>
+              </NavLink>
 
-          <NavLink
-            to={`/app/events/${effectiveEventId}/budget`}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
-              }`
-            }
-          >
-            <Wallet className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px]">Budget</span>
-          </NavLink>
+              <NavLink
+                to={`/app/events/${effectiveEventId}/budget`}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Wallet className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Budget</span>
+              </NavLink>
 
-          <NavLink
-            to={`/app/events/${effectiveEventId}/timeline`}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
-              }`
-            }
-          >
-            <Clock className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px]">Timeline</span>
-          </NavLink>
+              <NavLink
+                to={`/app/events/${effectiveEventId}/timeline`}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Clock className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Timeline</span>
+              </NavLink>
 
-          <NavLink
-            to={`/app/events/${effectiveEventId}/vendors`}
-            className={({ isActive }) =>
-              `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
-              }`
-            }
-          >
-            <Building2 className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px]">Vendors</span>
-          </NavLink>
+              <NavLink
+                to={`/app/events/${effectiveEventId}/vendors`}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Building2 className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Vendors</span>
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/app/dashboard"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <LayoutDashboard className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Dashboard</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/vendors"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Building2 className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Vendors</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/events/new"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <PlusCircle className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Plan New</span>
+              </NavLink>
+
+              <NavLink
+                to="/app/settings"
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-1 px-2 min-w-[56px] min-h-[44px] rounded-lg transition-colors ${
+                    isActive
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Settings className="w-4 h-4 mb-0.5" />
+                <span className="text-[10px]">Settings</span>
+              </NavLink>
+            </>
+          )}
 
           <button
             onClick={() => setMobileMenuOpen(true)}

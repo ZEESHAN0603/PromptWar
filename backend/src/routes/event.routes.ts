@@ -9,6 +9,18 @@ import {
 import { guestRouter, guestSummaryRouter } from './guest.routes.js';
 import { taskRouter } from './task.routes.js';
 import { timelineRouter } from './timeline.routes.js';
+import {
+  getEventRecommendationsHandler,
+  listEventVendorsHandler,
+  addEventVendorHandler,
+  updateEventVendorHandler,
+  deleteEventVendorHandler,
+} from '../controllers/vendor.controller.js';
+import {
+  getEventIdeasHandler,
+  toggleSaveIdeaHandler,
+  createIdeaHandler,
+} from '../controllers/idea.controller.js';
 
 export const eventRouter = Router();
 
@@ -41,3 +53,18 @@ eventRouter.use('/:eventId/tasks', taskRouter);
 
 // Timeline Activities
 eventRouter.use('/:eventId/timeline', timelineRouter);
+
+// Phase 4: Vendor Recommendations & Event Vendor Selections
+eventRouter.get('/:eventId/vendor-recommendations', getEventRecommendationsHandler);
+eventRouter.get('/:eventId/recommendations/vendors', getEventRecommendationsHandler);
+eventRouter.get('/:eventId/vendors', listEventVendorsHandler);
+eventRouter.post('/:eventId/vendors', addEventVendorHandler);
+eventRouter.patch('/:eventId/vendors/:id', updateEventVendorHandler);
+eventRouter.delete('/:eventId/vendors/:id', deleteEventVendorHandler);
+
+// Personalized Ideas
+eventRouter.get('/:eventId/ideas', getEventIdeasHandler);
+eventRouter.post('/:eventId/ideas', createIdeaHandler);
+eventRouter.patch('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);
+eventRouter.post('/:eventId/ideas/:id/toggle-save', toggleSaveIdeaHandler);
+

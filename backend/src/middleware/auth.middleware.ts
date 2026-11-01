@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError.js';
 import { verifySupabaseToken, AuthenticatedUser } from '../config/supabase.js';
+import { prisma } from '../config/database.js';
 
 declare global {
   namespace Express {
@@ -46,4 +47,33 @@ export async function requireAuth(
     next(error);
   }
 }
+
+/**
+ * Admin authorization middleware that checks if the authenticated user has role === 'admin'.
+ */
+export async function requireAdmin(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user || !req.user.id) {
+      return next(ApiError.unauthorized('Authentication required'));
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.user.id },
+      select: { role: true },
+    });
+
+    if (!profile || profile.role !== 'admin') {
+      return next(ApiError.forbidden('Admin access required'));
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 
