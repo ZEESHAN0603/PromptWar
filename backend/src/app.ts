@@ -10,6 +10,7 @@ import { userRouter } from './routes/user.routes.js';
 import { eventRouter } from './routes/event.routes.js';
 import { vendorRouter } from './routes/vendor.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
+import { copilotRouter } from './routes/copilot.routes.js';
 
 export function createApp(): Application {
   const app: Application = express();
@@ -58,6 +59,7 @@ export function createApp(): Application {
   app.use('/api/events', eventRouter);
   app.use('/api/vendors', vendorRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/copilot', copilotRouter);
 
   // Root welcome / metadata route
   app.get('/', (_req, res) => {

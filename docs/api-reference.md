@@ -1081,6 +1081,145 @@ Timeline items represent day-of run-of-show activities and scheduled milestones,
 - **Auth Required**: Yes
 - **Description**: Deterministically compares snapshots between two historical versions or between historical version and current plan.
 
+---
+
+## 10. Context-Aware AI Co-Pilot APIs (Phase 7)
+
+### 10.1 Co-Pilot Chat Interaction
+- **Method**: `POST`
+- **Endpoint**: `/api/copilot/chat`
+- **Auth Required**: Yes (`Bearer <token>`)
+- **Rate Limit**: 25 requests/min per user
+- **Description**: Sends a natural-language question or instruction to the context-aware planning assistant. Automatically establishes event context when `eventId` is provided. If an action is requested, generates a structured `actionPreview` requiring explicit user confirmation.
+- **Request Body**:
+```json
+{
+  "message": "What is my remaining budget and how much have I spent so far?",
+  "eventId": "c3f10111-ee15-4606-bf32-bf43ce77e8da",
+  "conversationId": "optional-uuid"
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "AI response generated successfully",
+  "data": {
+    "reply": "### Budget Overview\n• **Total Planned Budget**: ₹3,50,000\n• **Recorded Actual Expenses**: ₹0\n• **Remaining Budget**: ₹3,50,000\n• **Budget Utilization**: 0%",
+    "conversationId": "55555555-5555-5555-5555-555555555555",
+    "messageId": "msg-uuid",
+    "actionPreview": null,
+    "recommendations": [
+      "Allocate budget across categories",
+      "Check vendor recommendations"
+    ],
+    "eventContextSummary": {
+      "eventId": "c3f10111-ee15-4606-bf32-bf43ce77e8da",
+      "eventName": "Aarav & Meera Sangeet & Reception",
+      "eventType": "Wedding",
+      "budgetUtilization": 0,
+      "tasksTotal": 0,
+      "tasksCompleted": 0,
+      "confirmedGuests": 0
+    }
+  }
+}
+```
+
+### 10.2 List Planning Conversations
+- **Method**: `GET`
+- **Endpoint**: `/api/copilot/conversations?eventId=:optionalEventId`
+- **Auth Required**: Yes
+- **Description**: Retrieves persistent conversation threads owned by the authenticated user, optionally filtered by celebration workspace.
+
+### 10.3 Create Planning Conversation
+- **Method**: `POST`
+- **Endpoint**: `/api/copilot/conversations`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+  "eventId": "c3f10111-ee15-4606-bf32-bf43ce77e8da",
+  "title": "Vendor & Catering Strategy"
+}
+```
+- **Response (201 Created)**: Returns created conversation thread.
+
+### 10.4 Get Conversation Messages
+- **Method**: `GET`
+- **Endpoint**: `/api/copilot/conversations/:id`
+- **Auth Required**: Yes
+- **Description**: Retrieves full chronological message history for an owned conversation.
+
+### 10.5 Delete Conversation
+- **Method**: `DELETE`
+- **Endpoint**: `/api/copilot/conversations/:id`
+- **Auth Required**: Yes
+- **Description**: Safely deletes an owned conversation and its linked messages.
+
+### 10.6 Prepare Action Preview
+- **Method**: `POST`
+- **Endpoint**: `/api/copilot/actions/preview`
+- **Auth Required**: Yes
+- **Description**: Validates operation parameters and generates an explicit action preview without modifying database records.
+- **Request Body**:
+```json
+{
+  "eventId": "c3f10111-ee15-4606-bf32-bf43ce77e8da",
+  "actionType": "create_task",
+  "parameters": {
+    "title": "Review Catering Tasting Menu",
+    "priority": "high",
+    "dueDate": "2026-11-20"
+  }
+}
+```
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Action preview prepared successfully",
+  "data": {
+    "actionPreview": {
+      "actionType": "create_task",
+      "title": "Create Task: \"Review Catering Tasting Menu\"",
+      "summary": "Will create a new high priority task due on 11/20/2026.",
+      "targetEntity": "tasks",
+      "proposedData": {
+        "title": "Review Catering Tasting Menu",
+        "description": null,
+        "dueDate": "2026-11-20",
+        "priority": "high",
+        "status": "todo"
+      },
+      "requiresConfirmation": true
+    }
+  }
+}
+```
+
+### 10.7 Confirm and Execute Action
+- **Method**: `POST`
+- **Endpoint**: `/api/copilot/actions/confirm`
+- **Auth Required**: Yes
+- **Description**: Explicitly commits a validated action to the event workspace using existing verified domain services.
+- **Request Body**: Same parameters as preview.
+- **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Task \"Review Catering Tasting Menu\" successfully created in event workspace.",
+  "data": {
+    "id": "new-task-uuid",
+    "title": "Review Catering Tasting Menu",
+    "priority": "high",
+    "status": "todo",
+    "dueDate": "2026-11-20T00:00:00.000Z"
+  }
+}
+```
+
+
 
 
 

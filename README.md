@@ -205,7 +205,9 @@ Tests:
 - Event timeline run-of-show and chronological validation
 - Community vendor recommendation, duplicate check, and contributions
 - AI celebration idea synthesis with Gemini, category filtering, and favorite persistence
-- **Status: 13 test files, 112/112 passing tests (100% pass rate)**
+- Adaptive event re-planning engine calculations, impact reports, and version snapshots
+- Context-aware AI Co-Pilot chat, allowlisted tool calling, and two-step action confirmation
+- **Status: 16 test files, 160/160 passing tests (100% pass rate)**
 
 ### Python AI Service Tests (pytest)
 ```bash
@@ -240,14 +242,32 @@ npm run build
 | **Phase 3** | **Event Planning: Budget, Expenses, Guests, Tasks & Timeline** | **✅ Completed** |
 | **Phase 4** | **Community Vendor Recommendation System & Moderation** | **✅ Completed** |
 | **Phase 5** | **Personalized Celebration Ideas AI (Google Gemini 2.5 Integration)** | **✅ Completed** |
-| Phase 6 | Adaptive Re-Planning Engine | ⏳ Planned |
-| Phase 7 | AI Co-Pilot (Interactive Assistance) | ⏳ Planned |
+| **Phase 6** | **Adaptive Event Re-Planning Engine & Snapshot Versioning** | **✅ Completed** |
+| **Phase 7** | **Context-Aware AI Co-Pilot (Interactive Assistance & Confirmed Actions)** | **✅ Completed** |
 
-For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMAP.md`](docs/BACKEND_ROADMAP.md).
+For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMAP.md`](docs/BACKEND_ROADMAP.md) and [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
 ## 11. Implemented Features & Core API Surface
+
+### Phase 7: Context-Aware AI Co-Pilot (Final Development Phase)
+- `POST /api/copilot/chat` — Send message and receive context-aware response based on verified database records with rate limiting
+- `GET /api/copilot/conversations` — Retrieve user's planning chat conversations with event filters
+- `POST /api/copilot/conversations` — Create dedicated conversation thread
+- `GET /api/copilot/conversations/:id` — Retrieve conversation turn messages
+- `DELETE /api/copilot/conversations/:id` — Delete conversation thread with ownership check
+- `POST /api/copilot/actions/preview` — Prepare validated action preview without database mutation
+- `POST /api/copilot/actions/confirm` — Explicitly execute approved action via domain services
+
+### Phase 6: Adaptive Event Re-Planning Engine & Snapshot Versioning
+- `POST /api/events/:eventId/replan` — Generate deterministic impact calculation & Gemini advisory proposal
+- `GET /api/events/:eventId/replan/:proposalId` — Inspect proposed plan changes and trade-offs
+- `POST /api/events/:eventId/replan/:proposalId/apply` — Concurrency-guarded transaction applying approved changes
+- `POST /api/events/:eventId/replan/:proposalId/reject` — Reject proposal
+- `GET /api/events/:eventId/versions` — List sequential plan version snapshots (`v1.0`, `v2.0`...)
+- `GET /api/events/:eventId/versions/:versionId` — Retrieve full historical snapshot
+- `GET /api/events/:eventId/versions/compare` — Compare two snapshots or compare version against live event
 
 ### Phase 5: Personalized Ideas AI (Gemini Engine)
 - `POST /api/events/:eventId/ideas/generate` — Synthesize personalized celebration concepts via Gemini with rate limiting & Zod validation
@@ -279,12 +299,16 @@ For the complete multi-phase architecture and details, see [`docs/BACKEND_ROADMA
 ---
 
 ## 12. Documentation Links
+- [`docs/phase-7-completion.md`](docs/phase-7-completion.md) — Phase 7 completion report (Context-Aware AI Co-Pilot)
+- [`docs/phase-7-copilot.md`](docs/phase-7-copilot.md) — Phase 7 technical specification & API design
+- [`docs/phase-7-audit.md`](docs/phase-7-audit.md) — Phase 7 repository & feature audit
+- [`docs/phase-6-completion.md`](docs/phase-6-completion.md) — Phase 6 completion report (Adaptive Re-Planning Engine)
 - [`docs/phase-5-completion.md`](docs/phase-5-completion.md) — Phase 5 completion report (Personalized Ideas Engine)
 - [`docs/phase-4-completion.md`](docs/phase-4-completion.md) — Phase 4 completion report (Vendor System)
 - [`docs/phase-3-completion.md`](docs/phase-3-completion.md) — Phase 3 completion report (Event Planning)
 - [`docs/phase-2-completion.md`](docs/phase-2-completion.md) — Phase 2 completion report (Auth & Events)
-- [`docs/architecture.md`](docs/architecture.md) — System architecture & request flow
-- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference (Phases 1-5)
+- [`docs/architecture.md`](docs/architecture.md) — Complete multi-phase system architecture
+- [`docs/api-reference.md`](docs/api-reference.md) — Detailed endpoint reference (Phases 1-7)
 - [`docs/database-design.md`](docs/database-design.md) — Database schema, ER diagram, and indexes
 - [`docs/authentication.md`](docs/authentication.md) — Supabase Auth and JWT verification
-- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports (112 tests)
+- [`docs/testing.md`](docs/testing.md) — Test strategies & execution reports (160 tests)

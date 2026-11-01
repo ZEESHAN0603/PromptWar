@@ -1044,4 +1044,78 @@ export const apiClient = {
     );
     return res.data;
   },
+
+  // Phase 7: Context-Aware AI Co-Pilot
+  async copilotChat(data: {
+    message: string;
+    eventId?: string | null;
+    conversationId?: string | null;
+  }) {
+    const res = await request<{
+      reply: string;
+      conversationId: string;
+      messageId: string;
+      actionPreview?: any;
+      recommendations: string[];
+      eventContextSummary?: any;
+    }>('/copilot/chat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
+
+  async getCopilotConversations(eventId?: string) {
+    const query = new URLSearchParams();
+    if (eventId) query.set('eventId', eventId);
+    const queryString = query.toString();
+    const res = await request<{ conversations: any[] }>(
+      `/copilot/conversations${queryString ? `?${queryString}` : ''}`
+    );
+    return res.data.conversations;
+  },
+
+  async createCopilotConversation(data: { eventId?: string | null; title?: string }) {
+    const res = await request<{ conversation: any }>('/copilot/conversations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data.conversation;
+  },
+
+  async getCopilotConversation(id: string) {
+    const res = await request<{ conversation: any; messages: any[] }>(`/copilot/conversations/${id}`);
+    return res.data;
+  },
+
+  async deleteCopilotConversation(id: string) {
+    const res = await request<{ id: string; deleted: boolean }>(`/copilot/conversations/${id}`, {
+      method: 'DELETE',
+    });
+    return res.data;
+  },
+
+  async previewCopilotAction(data: {
+    eventId: string;
+    actionType: string;
+    parameters: Record<string, any>;
+  }) {
+    const res = await request<{ actionPreview: any }>('/copilot/actions/preview', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data.actionPreview;
+  },
+
+  async confirmCopilotAction(data: {
+    eventId: string;
+    actionType: string;
+    parameters: Record<string, any>;
+  }) {
+    const res = await request<any>('/copilot/actions/confirm', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  },
 };

@@ -433,6 +433,18 @@ export class ReplanService {
   }
 
   /**
+   * Retrieve Event Proposals History
+   */
+  public static async listProposals(userId: string, eventId: string) {
+    await this.verifyEventOwnership(userId, eventId);
+
+    return prisma.eventReplanProposal.findMany({
+      where: { eventId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * 5. Retrieve Event Version History
    */
   public static async listVersions(userId: string, eventId: string) {
